@@ -1,0 +1,174 @@
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchAdminController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchAdminController.js:39: divisionId: req.user.divisionId || undefined,
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:48: divisionId: branch.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:74: $or: [
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:76: { divisionId: scope.organizationId },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:120: String(branch.divisionId || "") === String(scope.organizationId)
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:135: let divisionId = normalizeObjectIdValue(req.body?.divisionId) || normalizeObjectIdValue(req.user?.divisionId);
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:139: if (!organizationId && divisionId) {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:140: organizationId = divisionId;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:143: if (!divisionId && organizationId) {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:144: // TODO: remove divisionId after full migration
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:145: divisionId = organizationId;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:153: // TODO: remove divisionId after full migration
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:161: divisionId,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:180: divisionId: tenantType === "police" ? scope.divisionId : null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:221: divisionId: tenantType === "police" ? scope.divisionId : null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:264: if (tenantType === "police" && scope.divisionId && !isValidObjectId(scope.divisionId)) {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:265: return errorResponse(res, 400, "divisionId must be a valid ObjectId");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:420: if (req.body?.tenantType !== undefined || req.body?.organizationId !== undefined || req.body?.divisionId !== undefined) {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchController.js:421: return errorResponse(res, 400, "tenantType, organizationId, and divisionId cannot be changed on branch update");
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:38: divisionId: branchRequest.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:64: divisionId: branch.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:99: $or: [
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:101: { divisionId: organizationScope.organizationId },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:119: divisionId: tenantType === "police" ? scope.organizationId : null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:188: return errorResponse(res, 403, "Police organization_admin must have an organizationId or divisionId assigned");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:249: $or: [
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:252: { divisionId: scope.organizationId },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:257: $or: [{ requestedBy: req.user.id || req.user._id }, { organizationId: scope.organizationId }],
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:362: const organizationId = branchRequest.organizationId || branchRequest.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:369: // TODO: remove divisionId after migration.
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:370: divisionId: branchRequest.divisionId || organizationId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:418: // TODO: remove divisionId after migration.
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:419: divisionId: branchRequest.divisionId || organizationId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:439: divisionId: branchRequest.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\branchRequestController.js:507: divisionId: branchRequest.divisionId || null,
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\counterController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\counterController.js:41: .select("_id tenantType organizationId divisionId branchId serviceName status")
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\counterController.js:53: const organizationId = branchScope.organizationId || req.user.organizationId || req.user.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\counterController.js:69: const serviceOrganizationId = service.organizationId || service.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\counterController.js:102: // TODO: remove divisionId after migration; organizationId is the primary scope.
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\counterController.js:103: divisionId: req.user.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\counterController.js:118: divisionId: counter.divisionId,
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:9: * - police: divisionId
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:14: const { tenantType, divisionId, organizationId } = req.query;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:26: // Police tenant: scoped by divisionId
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:28: if (!divisionId) {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:31: message: "divisionId is required for police tenant",
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:34: scopeFilter = { divisionId };
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:69: _id: divisionId,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:121: if (!req.user.divisionId) {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:124: message: "divisionId is required for police tenant scope",
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:127: scopeFilter.divisionId = req.user.divisionId;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:258: if (!req.user.divisionId) {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:261: message: "divisionId is required for police tenant scope",
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:264: branchScopeFilter.divisionId = req.user.divisionId;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:281: "_id branchName tenantType divisionId organizationId isMain"
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:310: divisionId: branch.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:325: divisionId: createdService.divisionId,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:366: if (!req.user.divisionId) {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:369: message: "divisionId is required for police tenant scope",
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationAdminController.js:372: branchScopeFilter.divisionId = req.user.divisionId;
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationController.js:254: divisionId: organization._id,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationController.js:263: divisionId: organization._id,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationController.js:286: divisionId: organization._id,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationController.js:317: divisionId: organization._id,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationController.js:331: divisionId: divisionAdminUser.divisionId,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\organizationController.js:361: divisionId: mainBranch.divisionId,
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:24: const scopedDivisionId = user?.divisionId || user?.organizationId;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:25: query._id = scopedDivisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:133: const divisionIds = divisions.map((division) => division._id);
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:137: divisionId: { $in: divisionIds },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:140: .select("_id branchName city branchCode status divisionId");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:142: const branchesByDivisionId = branches.reduce((accumulator, branch) => {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:143: const key = String(branch.divisionId || "");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:160: divisionId: division._id,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:165: branches: branchesByDivisionId[String(division._id)] || [],
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:199: const divisionIds = divisions.map((division) => division._id);
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:203: divisionId: { $in: divisionIds },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:206: .select("_id branchName city branchCode divisionId");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:213: divisionId: { $in: divisionIds },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:216: .select("_id name email username phone status divisionId");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:221: divisionId: { $in: divisionIds },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:225: .select("_id name email username phone status divisionId branchId");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:228: const key = `${String(admin.divisionId || "")}:${String(admin.branchId || "")}`;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:245: const divisionAdminsByDivisionId = divisionAdmins.reduce((accumulator, admin) => {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:246: const key = String(admin.divisionId || "");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:263: const branchesByDivisionId = branches.reduce((accumulator, branch) => {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:264: const divisionKey = String(branch.divisionId || "");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:283: divisionId: division._id,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:285: divisionAdmins: divisionAdminsByDivisionId[String(division._id)] || [],
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:286: branches: branchesByDivisionId[String(division._id)] || [],
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:320: const divisionIds = divisions.map((division) => division._id);
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:324: divisionId: { $in: divisionIds },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:327: .select("_id branchName divisionId");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:331: divisionId: { $in: divisionIds },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:332: }).select("_id divisionId serviceName description");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:334: const servicesByDivisionId = services.reduce((accumulator, service) => {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:335: const key = String(service.divisionId || "");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:344: const branchesByDivisionId = branches.reduce((accumulator, branch) => {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:345: const divisionKey = String(branch.divisionId || "");
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:355: const normalizedDivisionServices = (servicesByDivisionId[String(division._id)] || []).reduce((list, service) => {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:374: const divisionBranches = branchesByDivisionId[String(division._id)] || [];
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\policeDivisionController.js:377: divisionId: division._id,
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:24: divisionId: service.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:38: divisionId: null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:45: branch.divisionId ||
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:50: divisionId: branch.divisionId || (organizationScope.source === "division" ? organizationScope.organizationId : null),
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:69: $or: [{ organizationId: scope.organizationId }, { divisionId: scope.organizationId }],
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:111: String(branch.divisionId || "") === String(organizationScope.organizationId)
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:143: query.$or = [{ organizationId: scope.organizationId }];
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:146: query.$or.push({ divisionId: scope.organizationId });
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:154: .select("_id tenantType organizationId organizationName divisionId divisionName branchName status isMain")
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:216: divisionId: serviceScope.divisionId,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:265: ? { tenantType, $or: [{ organizationId: scope.organizationId }, { divisionId: scope.organizationId }] }
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:309: .select("_id tenantType organizationId organizationName divisionId divisionName branchName")
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:323: (tenantType === "police" && String(branch.divisionId || "") === String(organizationScope.organizationId || ""));
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\serviceController.js:377: .select("_id tenantType organizationId organizationName divisionId divisionName branchName")
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:17: const organizationId = branchScope.organizationId || user?.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:24: divisionId: user?.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:69: serviceQuery.$or = [
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:71: // TODO: remove divisionId fallback after migration.
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:72: { divisionId: scope.organizationId },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:128: counterQuery.$or = [
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:130: // TODO: remove divisionId fallback after migration.
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:131: { divisionId: scope.organizationId },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:266: "_id tenantType organizationId divisionId branchId serviceName status"
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:269: "_id tenantType organizationId divisionId branchId serviceId counterName status assignedStaffId"
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:272: "_id name tenantType organizationId divisionId branchId branchName status role"
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:297: const serviceOrganizationId = service.organizationId || service.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:298: const counterOrganizationId = counter.organizationId || counter.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:299: const organizationId = scope.organizationId || staffUser.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:346: // TODO: remove divisionId after migration; organizationId is the primary scope.
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:347: divisionId: staffUser.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:595: const divisionId = req.user.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:608: if (normalizedTenantType === "police" && !divisionId) {
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:611: message: "Branch admin scope is incomplete. divisionId is required for police tenant.",
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:647: divisionId,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\staffController.js:666: divisionId: staffUser.divisionId,
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\tokenController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\tokenController.js:33: andClauses.push(organizationClauses.length === 1 ? organizationClauses[0] : { $or: organizationClauses });
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\tokenController.js:44: andClauses.push(branchClauses.length === 1 ? branchClauses[0] : { $or: branchClauses });
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\tokenController.js:55: andClauses.push(serviceClauses.length === 1 ? serviceClauses[0] : { $or: serviceClauses });
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\tokenController.js:67: const branchOrganizationId = branch?.organizationId || branch?.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\tokenController.js:70: const organizationId = bodyOrganizationId || userScope.organizationId || userScope.divisionId || branchOrganizationId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\tokenController.js:143: .select("_id tenantType branchName organizationId organizationName divisionId divisionName status")
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\tokenController.js:146: .select("_id tenantType organizationId divisionId branchId serviceName status")
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\tokenController.js:225: message: "Police bookings require an organizationId or divisionId scope",
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:52: divisionId: user.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:140: divisionId: userData.divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:158: query.$or = [
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:160: { divisionId: organizationScope.organizationId },
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:168: .select("_id tenantType organizationId organizationName divisionId divisionName branchName status")
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:195: $or: [{ organizationId: organizationScope.organizationId }, { divisionId: organizationScope.organizationId }],
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:235: const rawOrganizationId = req.body?.organizationId || req.body?.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:259: divisionId: tenantType === "police" ? organizationId : null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:310: const resolvedOrganizationId = branch.organizationId || branch.divisionId || organizationScope.organizationId;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:333: divisionId: tenantType === "police" ? resolvedOrganizationId : null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:382: const resolvedOrganizationId = organizationScope.organizationId || branch.organizationId || branch.divisionId || null;
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:401: divisionId: tenantType === "police" ? resolvedOrganizationId : null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:458: divisionId,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:499: divisionId: divisionId || null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:576: divisionId: null,
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userController.js:609: divisionId: user.divisionId || null,
+[C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userQueueController.js]
+  C:\MERN PROJECTS\QUEUE-MANAGEMENT-SYSTEM\Backend\controllers\userQueueController.js:62: query.$or = [
