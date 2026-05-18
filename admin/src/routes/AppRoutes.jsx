@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { CANONICAL_ROLES, useAuth } from "../context/AuthContext";
 import AdminLayout from "../layouts/AdminLayout";
+import StaffLayout from "../layouts/StaffLayout";
 import Login from "../pages/auth/Login";
 import NotFound from "../pages/shared/NotFound";
 
@@ -39,6 +40,7 @@ import CompanySuperAdminAddSupermarketBranch from "../pages/companySuperAdmin/Ad
 import CompanySuperAdminOrganizationAdmins from "../pages/companySuperAdmin/OrganizationAdmins";
 import CompanySuperAdminReports from "../pages/companySuperAdmin/Reports";
 import CompanySuperAdminBranchRequests from "../pages/companySuperAdmin/BranchRequests";
+import CompanySuperAdminSystemBuilder from "../pages/companySuperAdmin/SystemBuilder";
 
 // Shared Organization Admin
 import SharedOrganizationAdminDashboard from "../pages/organizationAdmin/Dashboard";
@@ -267,6 +269,14 @@ export default function AppRoutes() {
           }
         />
         <Route
+          path="/company-super-admin/system-builder"
+          element={
+            <ProtectedRoute allowedRoles={[CANONICAL_ROLES.COMPANY_SUPER_ADMIN]}>
+              <CompanySuperAdminSystemBuilder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/company-super-admin/branches"
           element={
             <ProtectedRoute allowedRoles={[CANONICAL_ROLES.COMPANY_SUPER_ADMIN]}>
@@ -431,6 +441,16 @@ export default function AppRoutes() {
           }
         />
 
+      </Route>
+
+      {/* DEDICATED STAFF LAYOUT */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <StaffLayout />
+          </ProtectedRoute>
+        }
+      >
         {/* STAFF ROUTES */}
         <Route
           path="/staff/dashboard"
@@ -456,8 +476,6 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
-        
       </Route>
 
       <Route path="*" element={<NotFound />} />

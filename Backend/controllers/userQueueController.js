@@ -128,7 +128,7 @@ export const getUserServices = async (req, res) => {
       branchIds: { $in: [branchId] },
       status: "active",
     })
-      .select("_id serviceName")
+      .select("_id serviceName description availableDates workingDays isClosed")
       .sort({ serviceName: 1 })
       .lean();
 
@@ -137,6 +137,10 @@ export const getUserServices = async (req, res) => {
       services: services.map((service) => ({
         id: service._id,
         serviceName: service.serviceName,
+        description: service.description || "",
+        availableDates: service.availableDates || [],
+        workingDays: service.workingDays || [],
+        isClosed: service.isClosed || false,
       })),
     });
   } catch (error) {

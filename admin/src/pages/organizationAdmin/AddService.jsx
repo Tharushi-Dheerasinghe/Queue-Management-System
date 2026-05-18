@@ -9,12 +9,14 @@ export default function AddService() {
   const [branchesLoading, setBranchesLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
   
   // 1. branchId වෙනුවට branchIds array එකක් ලෙස state එක හැදුවා
   const [formData, setFormData] = useState({
     branchIds: [], 
     serviceName: "",
     description: "",
+    availableDates: [],
     status: "active",
   });
 
@@ -59,6 +61,23 @@ export default function AddService() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleAddDate = () => {
+    if (selectedDate && !formData.availableDates.includes(selectedDate)) {
+      setFormData(prev => ({
+        ...prev,
+        availableDates: [...prev.availableDates, selectedDate].sort()
+      }));
+      setSelectedDate("");
+    }
+  };
+
+  const handleRemoveDate = (dateToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      availableDates: prev.availableDates.filter(d => d !== dateToRemove)
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (formData.branchIds.length === 0) {
@@ -76,6 +95,7 @@ export default function AddService() {
           branchId: id,
           serviceName: formData.serviceName,
           description: formData.description,
+          availableDates: formData.availableDates,
           status: formData.status
         })
       );
@@ -159,6 +179,47 @@ export default function AddService() {
               onChange={handleChange}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-sky-100"
             />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Available Dates</label>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                min={new Date().toISOString().split("T")[0]}
+                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-sky-100"
+              />
+              <button
+                type="button"
+                onClick={handleAddDate}
+                disabled={!selectedDate}
+                className="px-4 py-2.5 bg-slate-800 text-white text-sm font-medium rounded-xl hover:bg-slate-700 disabled:opacity-50 transition-colors"
+              >
+                Add Date
+              </button>
+            </div>
+            
+            {formData.availableDates.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.availableDates.map(date => (
+                  <span key={date} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-sm font-medium border border-sky-100">
+                    {new Date(date).toLocaleDateString()}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDate(date)}
+                      className="text-sky-400 hover:text-sky-600 focus:outline-none"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-xs text-slate-500">If no dates are specified, the service will be available on default working days.</p>
           </div>
 
           <div>

@@ -11,6 +11,9 @@ import {
 } from "../utils/scopeHelpers.js";
 import { errorResponse, successResponse } from "../utils/responseHelpers.js";
 import { isValidObjectId, requireFields } from "../utils/validationHelpers.js";
+import mongoose from "mongoose";
+import Token from "../models/Token.js";
+import { sendSMS } from "../utils/smsService.js";
 
 const ALLOWED_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket"]);
 const ALLOWED_STATUS = new Set(["active", "inactive"]);
@@ -24,6 +27,9 @@ const buildServiceResponse = (service) => ({
   branchIds: service.branchIds || [],
   serviceName: service.serviceName,
   description: service.description || "",
+  availableDates: service.availableDates || [],
+  workingDays: service.workingDays || [],
+  isClosed: service.isClosed || false,
   status: service.status,
   createdBy: service.createdBy || null,
   createdAt: service.createdAt,
@@ -126,7 +132,7 @@ export const createService = async (req, res) => {
       return errorResponse(res, 403, "Only organization_admin can create services");
     }
 
-    const { branchId, serviceName, description, status, tenantType: bodyTenantType } = req.body;
+    const { branchId, serviceName, description, status, availableDates, tenantType: bodyTenantType } = req.body;
     
     if (!branchId || !serviceName) {
       return errorResponse(res, 400, "Missing required fields: branchId, serviceName");
@@ -151,6 +157,7 @@ export const createService = async (req, res) => {
           organizationId: organizationScope.organizationId,
           serviceName: serviceName.trim(),
           description: description || "",
+          availableDates: Array.isArray(availableDates) ? availableDates : [],
           status: status || "active",
           createdBy: req.user.id || req.user._id,
         }
@@ -347,7 +354,7 @@ export const updateService = async (req, res) => {
     }
 
     const updates = {};
-    const allowedFields = ["serviceName", "description", "status"];
+    const allowedFields = ["serviceName", "description", "status", "workingDays", "isClosed", "availableDates"];
     for (const field of allowedFields) {
       if (req.body?.[field] !== undefined) {
         updates[field] = req.body[field];
@@ -369,6 +376,12 @@ export const updateService = async (req, res) => {
       updates.status = normalizeText(updates.status).toLowerCase();
       if (!ALLOWED_STATUS.has(updates.status)) {
         return errorResponse(res, 400, "status must be active or inactive");
+      }
+    }
+
+    if (updates.availableDates !== undefined) {
+      if (!Array.isArray(updates.availableDates)) {
+        return errorResponse(res, 400, "availableDates must be an array");
       }
     }
 
@@ -396,5 +409,85 @@ export const updateService = async (req, res) => {
     return errorResponse(res, 500, "Server error while updating service", {
       error: error?.message || error,
     });
+  }
+};
+
+export const deleteService = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    if (!req.user) {
+      return errorResponse(res, 401, "User authentication required");
+    }
+
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return errorResponse(res, 400, "Invalid service id");
+    }
+
+    const service = await Service.findById(id).session(session);
+    if (!service) {
+      await session.abortTransaction();
+      session.endSession();
+      return errorResponse(res, 404, "Service not found");
+    }
+
+    // Permission check
+    const branch = await Branch.findOne({ _id: { $in: service.branchIds || [] } }).session(session);
+    
+    if (isSuperAdmin(req.user)) {
+      if (normalizeTenantType(req.user.tenantType) !== normalizeTenantType(service.tenantType)) {
+        await session.abortTransaction();
+        session.endSession();
+        return errorResponse(res, 403, "super_admin can only delete services within their tenantType");
+      }
+    } else if (isOrganizationAdmin(req.user)) {
+      if (!branch || !canManageBranch(req.user, branch)) {
+        await session.abortTransaction();
+        session.endSession();
+        return errorResponse(res, 403, "organization_admin can only delete services in their own organization");
+      }
+    } else {
+      await session.abortTransaction();
+      session.endSession();
+      return errorResponse(res, 403, "Only super_admin or organization_admin can delete services");
+    }
+
+    // Find pending tokens
+    const pendingTokens = await Token.find({ serviceId: id, status: "Waiting" }).session(session);
+    
+    // Simulate sending SMS
+    for (const token of pendingTokens) {
+      if (token.contactNumber) {
+        await sendSMS(
+          token.contactNumber, 
+          `We apologize, but your appointment (Token ${token.sequenceNumber}) for ${service.serviceName} has been cancelled.`
+        );
+      }
+    }
+
+    // Hard Delete
+    await Token.deleteMany({ serviceId: id }).session(session);
+    
+    // Remove service from branches
+    if (service.branchIds && service.branchIds.length > 0) {
+      await Branch.updateMany(
+        { _id: { $in: service.branchIds } },
+        { $pull: { services: id } }
+      ).session(session);
+    }
+    
+    await Service.findByIdAndDelete(id).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return successResponse(res, 200, "Service and related data deleted successfully, SMS sent to pending customers");
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("deleteService error:", error);
+    return errorResponse(res, 500, "Server error while deleting service");
   }
 };

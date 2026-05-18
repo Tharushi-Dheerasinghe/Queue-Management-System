@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginCustomer } from "../../services/authService";
+import { Eye, EyeOff } from "lucide-react";
 
 
 export default function Login() {
@@ -11,6 +12,7 @@ export default function Login() {
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (event) => {
@@ -98,20 +100,29 @@ export default function Login() {
                 <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700">
                   Password
                 </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-2 ${
-                    errors.password
-                      ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-                      : "border-slate-200 focus:border-cyan-400 focus:ring-cyan-100"
-                  }`}
-                  placeholder="Enter your password"
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={`w-full rounded-xl border bg-white pl-4 pr-12 py-3 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+                      errors.password
+                        ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+                        : "border-slate-200 focus:border-cyan-400 focus:ring-cyan-100"
+                    }`}
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
                 {errors.password ? <p className="mt-1.5 text-xs text-red-600">{errors.password}</p> : null}
               </div>
 

@@ -1,8 +1,11 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Building, Hospital, Shield, ShoppingCart, User } from "lucide-react";
-import { useState } from "react";
+import { Building, Hospital, Shield, ShoppingCart, User, Moon, Sun } from "lucide-react";
+import { useState, useEffect } from "react";
 import { resolveHospitalModule } from "../../utils/hospitalModuleHelpers";
 import { legacyStorageKeys, removeItem, storageKeys } from "../../utils/storage";
+import { useTranslation } from "react-i18next";
+import { useTenant } from "../../context/TenantContext";
+import logoImg from "../../assets/logo.jpg";
 
 const getTenantIcon = (tenantType) => {
   const iconProps = { size: 24, className: "text-slate-900" };
@@ -21,84 +24,88 @@ const getTenantIcon = (tenantType) => {
 };
 
 export default function Navbar({ tenant, tenantType }) {
-  const theme = tenant.theme;
+  const theme = tenant?.theme || {};
   const hospitalModule = resolveHospitalModule(sessionStorage);
+  const { t, i18n } = useTranslation();
+  const { orgBranding } = useTenant();
 
   // Auth state
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user")));
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check initial theme from localStorage or system preference
+    if (localStorage.getItem("theme") === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add("dark");
+    } else {
+      setIsDarkMode(false);
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+      setIsDarkMode(true);
+    }
+  };
 
   const clearQueueFlow = () => {
     removeItem(sessionStorage, storageKeys.queueFlowStarted(tenantType));
     removeItem(sessionStorage, legacyStorageKeys.queueFlowStarted);
   };
 
-  const defaultNavLinks = [
-    { label: "Home", to: `/${tenantType}`, end: true },
-    { label: "Branches", to: `/${tenantType}/branches`, onClick: clearQueueFlow },
-    { label: "Services", to: `/${tenantType}/services`, onClick: clearQueueFlow },
-    { label: "Book Token", to: `/${tenantType}/book-token` },
-    { label: "Queue Status", to: `/${tenantType}/queue-status` },
-    { label: "Notifications", to: `/${tenantType}/notifications` },
-    { label: "My Booking", to: `/${tenantType}/my-booking` },
+  const navLinks = [
+    { label: t("Home"), to: `/`, end: true },
+    { label: t("Booking"), to: `/` },
+    { label: t("About"), to: `/about` },
+    { label: t("Contact"), to: `/contact` },
   ];
 
-  const hospitalDoctorChannelingLinks = [
-    { label: "Home", to: `/${tenantType}/doctor-channeling` },
-    { label: "Find Doctor", to: `/${tenantType}/find-doctor` },
-    { label: "My Appointment", to: `/${tenantType}/my-appointment` },
-    { label: "Notifications", to: `/${tenantType}/notifications` },
-  ];
+  if (tenantType) {
+    navLinks.push({ label: t("Track Queue"), to: `/${tenantType}/track` });
+  }
 
-  const hospitalPharmacyLinks = [
-    { label: "Pharmacy Queue", to: `/${tenantType}/pharmacy` },
-    { label: "My Booking", to: `/${tenantType}/my-booking` },
-    { label: "Notifications", to: `/${tenantType}/notifications` },
-  ];
-
-  const navLinks =
-    tenantType === "hospital" && hospitalModule === "doctor-channeling"
-      ? hospitalDoctorChannelingLinks
-      : tenantType === "hospital" && hospitalModule === "pharmacy-queue"
-        ? hospitalPharmacyLinks
-        : defaultNavLinks;
+  const primaryColor = orgBranding?.primaryColor || "#0ea5e9";
 
   const navLinkClass = ({ isActive }) =>
-    `rounded-full px-3 py-1.5 transition ${
+    `rounded-full px-4 py-2 transition text-sm font-semibold ${
       isActive
-        ? `${theme.light} ${theme.text} font-semibold`
-        : "text-slate-600 hover:text-slate-900"
+        ? "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white"
+        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-white"
     }`;
 
-  const handleProfileClick = () => {
-    setShowDropdown((prev) => !prev);
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    setUser(null);
-    setShowDropdown(false);
-    navigate("/user/login");
-  };
+  // User login removed based on requirements
 
   // Close dropdown on outside click (optional, not implemented for brevity)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <Link
-            to={`/${tenantType}`}
-            className="flex items-center justify-center rounded-lg p-1.5 transition hover:bg-slate-100"
-            title={`Go to ${tenant.name}`}
-          >
-            {getTenantIcon(tenantType)}
-          </Link>
-          <Link to="/" className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
-            <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${theme.primary} text-white shadow-sm`}>
-              Q
-            </span>
+          {tenantType && tenant && (
+            <Link
+              to={`/${tenantType}`}
+              className="flex items-center justify-center rounded-lg p-1.5 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+              title={`Go to ${tenant.name}`}
+            >
+              {getTenantIcon(tenantType)}
+            </Link>
+          )}
+          <Link to="/" className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {orgBranding?.logoUrl ? (
+              <img src={orgBranding.logoUrl} alt="Logo" className="h-10 w-10 object-contain dark:bg-white dark:p-1 dark:rounded-lg" />
+            ) : (
+              <img src={logoImg} alt="QueueFlow Logo" className="h-10 w-10 object-contain dark:bg-white dark:p-1 dark:rounded-lg" />
+            )}
             <span>QueueFlow</span>
           </Link>
         </div>
@@ -118,41 +125,30 @@ export default function Navbar({ tenant, tenantType }) {
         </nav>
 
         <div className="flex items-center gap-4 relative">
-          <div className={`rounded-full ${theme.light} px-3 py-1 text-xs font-semibold ${theme.text}`}>
-            {tenant.shortName}
-          </div>
-          {/* Auth section */}
-          {!user ? (
-            <Link
-              to="/user/login"
-              className={`ml-2 flex items-center rounded-xl px-4 py-2 font-semibold text-white transition ${theme.primary} hover:opacity-90`}
-              style={{ background: theme.primary }}
+          <select 
+            value={i18n.language} 
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
+            className="bg-transparent text-sm font-semibold text-slate-700 dark:text-slate-200 outline-none border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+          >
+            <option value="en">English</option>
+            <option value="si">සිංහල</option>
+            <option value="ta">தமிழ்</option>
+          </select>
+
+          <button 
+            onClick={toggleTheme} 
+            className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            title="Toggle Theme"
+          >
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+
+          {tenant && (
+            <div 
+              className="rounded-full px-4 py-1 text-xs font-bold transition-colors"
+              style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}
             >
-              Login
-            </Link>
-          ) : (
-            <div className="relative">
-              <button
-                className={`flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition p-2 focus:outline-none border border-slate-200`}
-                onClick={handleProfileClick}
-                aria-label="Profile menu"
-                type="button"
-              >
-                <User className="text-slate-700" size={24} />
-              </button>
-              {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-lg z-50 py-2">
-                  <div className="px-4 py-2 text-slate-700 text-sm font-medium border-b border-slate-100">
-                    Hi, {user.name}
-                  </div>
-                  <button
-                    className={`w-full text-left px-4 py-2 text-red-600 hover:bg-slate-50 font-semibold`}
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
+              {tenant.shortName}
             </div>
           )}
         </div>

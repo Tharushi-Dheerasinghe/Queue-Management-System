@@ -1,21 +1,13 @@
 import api from "./api";
 
-const ALLOWED_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket"]);
 const ORGANIZATION_ADMIN_ROLE = "organization_admin";
-const ALL_SHARED_TENANTS = ["bank", "supermarket", "hospital", "police"];
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
 
 export const normalizeTenantType = (value = "") => String(value || "").trim().toLowerCase();
 
 const assertTenantType = (tenantType) => {
-  const normalized = normalizeTenantType(tenantType);
-
-  if (!ALLOWED_TENANT_TYPES.has(normalized)) {
-    throw { success: false, message: `Unsupported tenantType: ${tenantType}` };
-  }
-
-  return normalized;
+  return normalizeTenantType(tenantType);
 };
 
 const getCollection = (data, primaryKey, secondaryKey) => {
@@ -31,14 +23,10 @@ const getCollection = (data, primaryKey, secondaryKey) => {
 };
 
 export const getOrganizationsByTenant = async (tenantType) => {
-  const normalized = assertTenantType(tenantType);
-  const response = await api.get("/organizations", {
-    params: { tenantType: normalized },
-  });
+  const params = tenantType ? { tenantType: normalizeTenantType(tenantType) } : {};
+  const response = await api.get("/organizations", { params });
 
-  return getCollection(response.data, "organizations", "organization").filter(
-    (item) => normalizeTenantType(item?.tenantType) === normalized
-  );
+  return getCollection(response.data, "organizations", "organization");
 };
 
 export const createOrganizationByTenant = async (tenantType, payload = {}) => {
@@ -52,14 +40,10 @@ export const createOrganizationByTenant = async (tenantType, payload = {}) => {
 };
 
 export const getBranchesByTenant = async (tenantType) => {
-  const normalized = assertTenantType(tenantType);
-  const response = await api.get("/branches", {
-    params: { tenantType: normalized },
-  });
+  const params = tenantType ? { tenantType: normalizeTenantType(tenantType) } : {};
+  const response = await api.get("/branches", { params });
 
-  return getCollection(response.data, "branches", "branch").filter(
-    (item) => normalizeTenantType(item?.tenantType) === normalized
-  );
+  return getCollection(response.data, "branches", "branch");
 };
 
 export const getServicesByTenant = async (tenantType) => {
@@ -133,5 +117,15 @@ export const updateOrganizationStatus = async (organizationId, status, tenantTyp
   }
 
   const response = await api.patch(`/organizations/${organizationId}`, patch);
+  return response.data;
+};
+
+export const bulkCreateSystem = async (payload) => {
+  const response = await api.post("/organizations/system-builder", payload);
+  return response.data;
+};
+
+export const getSystemLinks = async (organizationId) => {
+  const response = await api.get(`/organizations/${organizationId}/system-links`);
   return response.data;
 };

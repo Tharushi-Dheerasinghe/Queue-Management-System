@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import Branch from "../models/Branch.js";
 import User from "../models/User.js";
+import Token from "../models/Token.js";
 import {
   getBranchScope,
   getOrganizationScope,
@@ -11,6 +12,8 @@ import {
 } from "../utils/scopeHelpers.js";
 import { errorResponse, successResponse } from "../utils/responseHelpers.js";
 import { isValidObjectId, requireFields } from "../utils/validationHelpers.js";
+import mongoose from "mongoose";
+import { sendSMS } from "../utils/smsService.js";
 
 const ALLOWED_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);
@@ -47,6 +50,8 @@ const buildBranchResponse = (branch) => ({
   status: branch.status,
   organizationId: branch.organizationId || null,
   organizationName: branch.organizationName || branch.divisionName || null,
+  openingTime: branch.openingTime,
+  closingTime: branch.closingTime,
   branchAdminAccess: Boolean(branch.branchAdminAccess),
   createdBy: branch.createdBy || null,
   createdAt: branch.createdAt,
@@ -148,6 +153,8 @@ const buildBranchPayload = (req, tenantType, scope) => ({
   address: normalizeText(req.body?.address),
   contactNumber: normalizeText(req.body?.contactNumber),
   email: normalizeText(req.body?.email).toLowerCase(),
+  openingTime: normalizeText(req.body?.openingTime) || "08:00",
+  closingTime: normalizeText(req.body?.closingTime) || "17:00",
   status: normalizeText(req.body?.status || "active").toLowerCase(),
   branchAdminAccess: parseBoolean(req.body?.branchAdminAccess),
   createdBy: req.user?.id || req.user?._id || null,
@@ -461,6 +468,8 @@ export const updateBranch = async (req, res) => {
       "address",
       "contactNumber",
       "email",
+      "openingTime",
+      "closingTime",
       "status",
       "branchAdminAccess",
       "organizationName",
@@ -518,6 +527,14 @@ export const updateBranch = async (req, res) => {
       updates.email = normalizeText(updates.email).toLowerCase();
     }
 
+    if (updates.openingTime !== undefined) {
+      updates.openingTime = normalizeText(updates.openingTime);
+    }
+
+    if (updates.closingTime !== undefined) {
+      updates.closingTime = normalizeText(updates.closingTime);
+    }
+
     if (updates.status !== undefined) {
       updates.status = normalizeText(updates.status).toLowerCase();
       if (!ALLOWED_STATUSES.has(updates.status)) {
@@ -562,3 +579,102 @@ export const createHospitalBranch = async (req, res) => createBranch(req, res);
 export const createCompanyBranch = async (req, res) => createBranch(req, res);
 
 export const listBranches = async (req, res) => getBranches(req, res);
+
+export const getBranchDisplayData = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate ObjectId
+    if (!id || id.length !== 24) {
+      return res.status(400).json({ success: false, message: "Invalid branch ID" });
+    }
+
+    const branch = await Branch.findById(id).select("branchName organizationName status organizationId").populate("organizationId", "branding").lean();
+    if (!branch) {
+      return res.status(404).json({ success: false, message: "Branch not found" });
+    }
+
+    // Fetch tokens currently being called
+    const calledTokens = await Token.find({
+      branchId: branch._id,
+      status: "Called"
+    }).sort({ startedAt: -1 }).lean();
+
+    // Fetch waiting tokens (next 5)
+    const waitingTokens = await Token.find({
+      branchId: branch._id,
+      status: "Waiting"
+    }).sort({ sequenceNumber: 1 }).limit(5).lean();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        branch: branch,
+        branding: branch.organizationId?.branding || {},
+        called: calledTokens,
+        waiting: waitingTokens
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteBranch = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    if (!req.user) {
+      return errorResponse(res, 401, "User authentication required");
+    }
+
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return errorResponse(res, 400, "Invalid branch id");
+    }
+
+    const branch = await Branch.findById(id).session(session);
+    if (!branch) {
+      await session.abortTransaction();
+      session.endSession();
+      return errorResponse(res, 404, "Branch not found");
+    }
+
+    if (!hasBranchAccess(req.user, branch)) {
+      await session.abortTransaction();
+      session.endSession();
+      return errorResponse(res, 403, "You are not allowed to delete this branch");
+    }
+
+    // Find pending tokens
+    const pendingTokens = await Token.find({ branchId: id, status: "Waiting" }).session(session);
+    
+    // Simulate sending SMS
+    for (const token of pendingTokens) {
+      if (token.contactNumber) {
+        await sendSMS(
+          token.contactNumber, 
+          `We apologize, but your appointment (Token ${token.sequenceNumber}) at ${branch.branchName} has been cancelled due to branch closure.`
+        );
+      }
+    }
+
+    // Hard Delete
+    await Token.deleteMany({ branchId: id }).session(session);
+    await Service.deleteMany({ branchIds: id }).session(session); // Note: service holds branchIds or branchId depending on schema, we'll delete using both just in case
+    await Service.deleteMany({ branchId: id }).session(session);
+    await Branch.findByIdAndDelete(id).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return successResponse(res, 200, "Branch and related data deleted successfully, SMS sent to pending customers");
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("deleteBranch error:", error);
+    return errorResponse(res, 500, "Server error while deleting branch");
+  }
+};
+

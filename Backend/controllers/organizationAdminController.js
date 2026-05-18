@@ -204,7 +204,7 @@ export const addOrganizationBranchService = async (req, res) => {
       return res.status(403).json({ success: false, message: "Only organization_admin can add branch services" });
     }
 
-    const { branchId, serviceName, description = "", status = "active" } = req.body || {};
+    const { branchId, serviceName, description = "", status = "active", availableDates = [] } = req.body || {};
 
     if (!branchId || !serviceName || !status) {
       return res.status(400).json({ success: false, message: "branchId, serviceName, and status are required" });
@@ -245,6 +245,7 @@ export const addOrganizationBranchService = async (req, res) => {
         isDivisionService: Boolean(branch.isMain),
         serviceName: normalizedServiceName,
         description: String(description || "").trim(),
+        availableDates: Array.isArray(availableDates) ? availableDates : [],
         status: normalizedStatus,
         createdBy: req.user.id || req.user._id || null,
         branchIds: [branch._id]
@@ -348,7 +349,7 @@ export const getOrganizationBranchServices = async (req, res) => {
     const branchIds = branches.map((branch) => branch._id);
 
     const services = await Service.find({ branchIds: { $in: branchIds } })
-      .select("_id branchIds serviceName description status createdAt")
+      .select("_id branchIds serviceName description status availableDates createdAt")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -367,6 +368,7 @@ export const getOrganizationBranchServices = async (req, res) => {
             branchIds: linkedBranchIds,
             serviceName: service.serviceName,
             description: service.description || "",
+            availableDates: service.availableDates || [],
             status: service.status,
             createdAt: service.createdAt,
           });

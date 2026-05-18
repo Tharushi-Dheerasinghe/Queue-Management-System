@@ -1,1 +1,76 @@
 @import "tailwindcss";
+
+/* Global Dark Mode Overrides for Admin Panel */
+html.dark {
+  color-scheme: dark;
+}
+
+.dark {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-slate-200 {
+  background-color: #334155 !important;
+}
+
+.dark .text-slate-900, 
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #f8fafc !important;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg,
+.dark .shadow-xl {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark input, 
+.dark select, 
+.dark textarea {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.dark table th {
+  background-color: #0f172a !important;
+  color: #cbd5e1 !important;
+}
+
+.dark table tr {
+  border-color: #334155 !important;
+}
+
+.dark table tr:hover {
+  background-color: #334155 !important;
+}
+
+.dark button:not(.bg-sky-600):not(.bg-red-600):not(.bg-emerald-600) {
+  /* Let specific button colors stay, but general buttons get dark treatment */
+}

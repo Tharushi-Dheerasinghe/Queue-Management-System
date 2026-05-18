@@ -62,17 +62,21 @@ export const TenantProvider = ({ tenantType, children }) => {
   const [selectedService, setSelectedServiceState] = useState(() => readSelectedService());
   const [selectedOrganization, setSelectedOrganizationState] = useState(() => readSelectedOrganization());
   const [selectedOrganizationId, setSelectedOrganizationIdState] = useState(() => readSelectedOrganizationId());
+  const [orgBranding, setOrgBrandingState] = useState(() => readJSON(localStorage, `queueflow_${tenantType}_branding`, [], {}));
+  const [selectedDate, setSelectedDateState] = useState(() => localStorage.getItem(`queueflow_${tenantType}_selectedDate`) || "");
 
   useEffect(() => {
     setSelectedBranchState(readSelectedBranch());
     setSelectedServiceState(readSelectedService());
     setSelectedOrganizationState(readSelectedOrganization());
     setSelectedOrganizationIdState(localStorage.getItem(selectedOrganizationIdKey) || "");
+    setOrgBrandingState(readJSON(localStorage, `queueflow_${tenantType}_branding`, [], {}));
+    setSelectedDateState(localStorage.getItem(`queueflow_${tenantType}_selectedDate`) || "");
   }, [tenantType]);
 
 
 
-  const setSelectedOrganization = (organizationName, organizationId = "") => {
+  const setSelectedOrganization = (organizationName, organizationId = "", branding = null) => {
     const normalizedName = String(organizationName || "").trim();
     const normalizedId = String(organizationId || "").trim();
 
@@ -89,13 +93,23 @@ export const TenantProvider = ({ tenantType, children }) => {
 
     setSelectedOrganizationState(normalizedName);
     setSelectedOrganizationIdState(normalizedId);
-
+    if (branding) {
+      setOrgBrandingState(branding);
+    } else {
+      setOrgBrandingState({});
+    }
 
     const orgNameKey = `queueflow_${activeTenant}_selectedOrganization`;
     const orgIdKey = `${orgNameKey}_id`;
+    const orgBrandingKey = `queueflow_${activeTenant}_branding`;
 
     localStorage.setItem(orgNameKey, normalizedName);
     localStorage.setItem(orgIdKey, normalizedId);
+    if (branding) {
+      writeJSON(localStorage, orgBrandingKey, branding);
+    } else {
+      removeItem(localStorage, orgBrandingKey);
+    }
     localStorage.setItem(`queueflow_selectedTenant`, activeTenant);
     
     console.log(`Saved for ${activeTenant}:`, normalizedId);
@@ -125,16 +139,28 @@ export const TenantProvider = ({ tenantType, children }) => {
     writeValue(localStorage, storageKeys.selectedTenant(tenantType), tenantType);
   };
 
+  const setSelectedDate = (date) => {
+    setSelectedDateState(date);
+    if (date) {
+      localStorage.setItem(`queueflow_${tenantType}_selectedDate`, date);
+    } else {
+      localStorage.removeItem(`queueflow_${tenantType}_selectedDate`);
+    }
+  };
+
   const clearSelection = () => {
     setSelectedBranchState(null);
     setSelectedServiceState(null);
     setSelectedOrganizationState("");
     setSelectedOrganizationIdState("");
+    setOrgBrandingState({});
     removeItem(localStorage, storageKeys.selectedTenant(tenantType));
     removeItem(localStorage, storageKeys.selectedOrganization(tenantType));
     removeItem(localStorage, selectedOrganizationIdKey);
+    removeItem(localStorage, `queueflow_${tenantType}_branding`);
     removeItem(localStorage, storageKeys.selectedBranch(tenantType));
     removeItem(localStorage, storageKeys.selectedService(tenantType));
+    removeItem(localStorage, `queueflow_${tenantType}_selectedDate`);
     removeItem(localStorage, legacyStorageKeys.selectedOrganization);
     removeItem(localStorage, legacyStorageKeys.selectedBranch);
     removeItem(localStorage, legacyStorageKeys.selectedService);
@@ -147,11 +173,14 @@ export const TenantProvider = ({ tenantType, children }) => {
       theme,
       selectedOrganization,
       selectedOrganizationId,
+      orgBranding,
       selectedBranch,
       selectedService,
+      selectedDate,
       setSelectedOrganization,
       setSelectedBranch,
       setSelectedService,
+      setSelectedDate,
       clearSelection,
     }),
     [
@@ -160,8 +189,10 @@ export const TenantProvider = ({ tenantType, children }) => {
       theme,
       selectedOrganization,
       selectedOrganizationId,
+      orgBranding,
       selectedBranch,
       selectedService,
+      selectedDate,
     ]
   );
 

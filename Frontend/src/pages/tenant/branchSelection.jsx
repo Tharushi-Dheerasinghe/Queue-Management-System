@@ -6,6 +6,7 @@ import { useTenant } from "../../context/TenantContext";
 import { legacyStorageKeys, readValue, storageKeys } from "../../utils/storage";
 import { getBranchesForTenantSelection } from "../../services/tenantSelectionService";
 import { isNestedTenant } from "../../utils/tenantHelpers";
+import { useTranslation } from "react-i18next";
 
 export default function BranchSelection() {
   const {
@@ -14,9 +15,16 @@ export default function BranchSelection() {
     theme,
     selectedOrganization,
     selectedOrganizationId,
-    selectedBranch,
     setSelectedBranch,
+    setSelectedService,
+    setSelectedDate,
   } = useTenant();
+  
+  const { t } = useTranslation();
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedServiceToBook, setSelectedServiceToBook] = useState(null);
+  const [selectedBranchToBook, setSelectedBranchToBook] = useState(null);
+  const [availableDates, setAvailableDates] = useState([]);
   const navigate = useNavigate();
   const queueFlowStarted =
     readValue(sessionStorage, storageKeys.queueFlowStarted(tenantType), [legacyStorageKeys.queueFlowStarted]) ===
@@ -115,28 +123,44 @@ export default function BranchSelection() {
       return getScore(aValue) - getScore(bValue);
     });
 
-  const activeSelectedBranch = useMemo(() => {
-    if (!selectedBranch?.id) {
-      return null;
+  const handleServiceSelect = (branch, service) => {
+    if (!queueFlowStarted || service.isClosed) return;
+
+    setSelectedBranchToBook(branch);
+    setSelectedServiceToBook(service);
+
+    // Calculate next 14 available dates based on workingDays
+    const dates = [];
+    let currentDate = new Date();
+    const daysMap = { 'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6 };
+    const validDays = (service.workingDays && service.workingDays.length > 0) 
+      ? service.workingDays.map(d => {
+          // Handle both numeric (0-6) and string formats ("Sunday", "0", etc.)
+          if (typeof d === 'number') return d;
+          if (typeof d === 'string') {
+            const lower = d.toLowerCase();
+            return daysMap[lower] !== undefined ? daysMap[lower] : parseInt(d, 10);
+          }
+          return 0;
+        })
+      : [0, 1, 2, 3, 4, 5, 6]; // Default all days if missing
+
+    for (let i = 0; i < 30 && dates.length < 14; i++) {
+      if (validDays.includes(currentDate.getDay())) {
+        dates.push(new Date(currentDate));
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    return branches.find((branch) => String(branch.id) === String(selectedBranch.id)) || null;
-  }, [branches, selectedBranch]);
-
-  const handleBranchSelect = (branch) => {
-    if (!queueFlowStarted) {
-      return;
-    }
-
-    setSelectedBranch(branch);
+    setAvailableDates(dates);
+    setShowDatePicker(true);
   };
 
-  const handleContinue = () => {
-    if (!activeSelectedBranch?.id) {
-      return;
-    }
-
-    navigate(`/${tenantType}/services`);
+  const handleDateConfirm = (date) => {
+    setSelectedBranch(selectedBranchToBook);
+    setSelectedService(selectedServiceToBook);
+    setSelectedDate(date.toISOString().split("T")[0]);
+    navigate(`/${tenantType}/book-token`);
   };
 
   return (
@@ -153,14 +177,14 @@ export default function BranchSelection() {
               htmlFor="branch-search"
               className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500"
             >
-              Search Branch
+              {t("Search Branch")}
             </label>
             <input
               id="branch-search"
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Type branch name..."
+              placeholder={t("Type branch name...")}
               className={`w-full rounded-xl border px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:ring-4 ${
                 theme?.border || "border-blue-200"
               } ${theme?.ring || "focus:ring-blue-100"}`}
@@ -172,12 +196,12 @@ export default function BranchSelection() {
             theme?.light || "bg-blue-50"
           } ${theme?.text || "text-blue-700"}`}
         >
-          Step 1 of 4
+          {t("Step 1 of 4")}
         </div>
 
         {nestedTenant && !effectiveSelectedOrganizationId && (
           <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            No organization selected yet. Please choose an organization first.
+            {t("No organization selected yet. Please choose an organization first.")}
           </div>
         )}
       </div>
@@ -186,9 +210,11 @@ export default function BranchSelection() {
         {filteredBranches.map((branch) => (
           <BranchCard
             key={branch.id}
-            branch={branch.branchName}
-            selected={activeSelectedBranch?.id === branch.id}
-            onSelect={() => handleBranchSelect(branch)}
+            branch={branch}
+            branchName={branch.branchName}
+            services={branch.services}
+            selectedServiceId={selectedServiceToBook?.id}
+            onSelectService={handleServiceSelect}
             theme={theme}
             disabled={!queueFlowStarted}
           />
@@ -197,7 +223,7 @@ export default function BranchSelection() {
 
       {loadingBranches && (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          Loading branches...
+          {t("Loading branches and units...")}
         </div>
       )}
 
@@ -210,36 +236,44 @@ export default function BranchSelection() {
       {!loadingBranches && !fetchError && filteredBranches.length === 0 && (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
           {nestedTenant && effectiveSelectedOrganizationId
-            ? "No branches available for the selected organization."
-            : "No branches match your search."}
+            ? t("No branches available for the selected organization.")
+            : t("No branches match your search.")}
         </div>
       )}
 
-      {queueFlowStarted && activeSelectedBranch && (
-        <div
-          className={`rounded-3xl border p-5 shadow-sm sm:flex sm:items-center sm:justify-between ${
-            theme?.border || "border-blue-200"
-          } ${theme?.light || "bg-blue-50"}`}
-        >
-          <div>
-            <p
-              className={`text-xs font-semibold uppercase tracking-[0.14em] ${
-                theme?.text || "text-blue-700"
-              }`}
-            >
-              Selected Branch
-            </p>
-              <p className="mt-1 text-lg font-semibold text-slate-900">{activeSelectedBranch.branchName}</p>
+      {/* Date Picker Modal */}
+      {showDatePicker && selectedServiceToBook && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">{t("Select Date", "Select Date")}</h3>
+                <p className="text-sm text-slate-500">{selectedServiceToBook.serviceName} at {selectedBranchToBook.branchName}</p>
+              </div>
+              <button 
+                onClick={() => setShowDatePicker(false)}
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar space-y-2 mb-6">
+              {availableDates.map((date, idx) => {
+                const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleDateConfirm(date)}
+                    className={`w-full flex justify-between items-center px-4 py-3 rounded-xl border transition-all hover:-translate-y-0.5 hover:shadow-md bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50`}
+                  >
+                    <span className="font-medium">{dateStr}</span>
+                    <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-md">Available</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
-
-          <button
-            onClick={handleContinue}
-            className={`mt-4 w-full rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition sm:mt-0 sm:w-auto ${
-              theme?.button || "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            Continue
-          </button>
         </div>
       )}
 

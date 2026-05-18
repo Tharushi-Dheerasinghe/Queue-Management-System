@@ -1,11 +1,27 @@
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getSidebarLinksByRole } from "../utils/permissions";
+import { Moon, Sun } from "lucide-react";
 
 export default function AdminLayout() {
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("admin_theme") === "dark";
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("admin_theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("admin_theme", "light");
+    }
+  }, [isDarkMode]);
 
   const navLinks = getSidebarLinksByRole(role);
 
@@ -54,6 +70,12 @@ export default function AdminLayout() {
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                   {role || "guest"}
                 </span>
+                <button
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className="rounded-lg border border-slate-300 p-2 text-slate-600 transition hover:bg-slate-100"
+                >
+                  {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </button>
                 <button
                   type="button"
                   onClick={handleLogout}

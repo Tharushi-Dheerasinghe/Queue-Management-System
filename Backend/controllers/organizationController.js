@@ -2,6 +2,8 @@ import Organization from "../models/Organization.js";
 import Branch from "../models/Branch.js";
 import User from "../models/User.js";
 import Service from "../models/Service.js";
+import Token from "../models/Token.js";
+import Counter from "../models/Counter.js";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import {
@@ -12,7 +14,6 @@ import {
 import { errorResponse, successResponse } from "../utils/responseHelpers.js";
 import { isValidObjectId, requireFields } from "../utils/validationHelpers.js";
 
-const ALLOWED_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket"]);
 const ALLOWED_STATUS = new Set(["pending", "approved", "active", "inactive", "rejected"]);
 const ALLOWED_BRANCH_STATUS = new Set(["active", "inactive"]);
 const NON_POLICE_ORGANIZATION_CODE_PREFIX = {
@@ -529,27 +530,25 @@ export const createOrganization = async (req, res) => {
     }
 
     const tenantType = requestedTenantType;
-    if (!ALLOWED_TENANT_TYPES.has(tenantType)) {
-      return errorResponse(res, 400, "tenantType must be one of police, hospital, bank, or supermarket");
-    }
 
     const requesterRole = String(req.user?.role || "").trim().toLowerCase();
     const requesterTenantType = normalizeTenantType(req.user.tenantType);
 
-    const allowedTenantTypesByRole = {
-      company_super_admin: ["bank", "supermarket"],
-      police_super_admin: ["police"],
-      hospital_super_admin: ["hospital"],
-    };
+    if (requesterRole !== "company_super_admin") {
+      const allowedTenantTypesByRole = {
+        police_super_admin: ["police"],
+        hospital_super_admin: ["hospital"],
+      };
 
-    const allowedTenantTypes = allowedTenantTypesByRole[requesterRole] || [requesterTenantType];
+      const allowedTenantTypes = allowedTenantTypesByRole[requesterRole] || [requesterTenantType];
 
-    if (!allowedTenantTypes.length || !allowedTenantTypes[0]) {
-      return errorResponse(res, 400, "Logged-in user tenantType is required");
-    }
+      if (!allowedTenantTypes.length || !allowedTenantTypes[0]) {
+        return errorResponse(res, 400, "Logged-in user tenantType is required");
+      }
 
-    if (!allowedTenantTypes.includes(tenantType)) {
-      return errorResponse(res, 403, "super_admin can only manage organizations within their tenant scope");
+      if (!allowedTenantTypes.includes(tenantType)) {
+        return errorResponse(res, 403, "super_admin can only manage organizations within their tenant scope");
+      }
     }
 
     const payload = buildCreatePayloadByTenant(req.body, tenantType);
@@ -655,40 +654,46 @@ export const getOrganizations = async (req, res) => {
     const role = String(req.user.role || "").trim().toLowerCase();
     const requestedTenantType = normalizeTenantType(req.query?.tenantType);
 
-    const allowedTenantTypesByRole = {
-      company_super_admin: ["bank", "supermarket"],
-      hospital_super_admin: ["hospital"],
-      police_super_admin: ["police"],
-    };
-
     if (isSuperAdmin(req.user)) {
-      const allowedTenantTypes = allowedTenantTypesByRole[role] || [];
+      if (role === "company_super_admin") {
+        const query = requestedTenantType ? { tenantType: requestedTenantType } : {};
+        const organizations = await Organization.find(query).sort({ createdAt: -1 });
+        return successResponse(res, 200, "Organizations fetched successfully", {
+          organizations,
+        });
+      } else {
+        const allowedTenantTypesByRole = {
+          hospital_super_admin: ["hospital"],
+          police_super_admin: ["police"],
+        };
+        const allowedTenantTypes = allowedTenantTypesByRole[role] || [];
 
-      if (requestedTenantType && !allowedTenantTypes.includes(requestedTenantType)) {
-        return errorResponse(
-          res,
-          403,
-          `Role ${role || "unknown"} can only request organizations within its tenant scope`
-        );
+        if (requestedTenantType && !allowedTenantTypes.includes(requestedTenantType)) {
+          return errorResponse(
+            res,
+            403,
+            `Role ${role || "unknown"} can only request organizations within its tenant scope`
+          );
+        }
+
+        const tenantType = requestedTenantType || req.user.tenantType;
+        if (!tenantType) {
+          return errorResponse(res, 400, "Logged-in user tenantType is required");
+        }
+
+        if (allowedTenantTypes.length && !allowedTenantTypes.includes(tenantType)) {
+          return errorResponse(
+            res,
+            403,
+            `Role ${role || "unknown"} can only request organizations within its tenant scope`
+          );
+        }
+
+        const organizations = await Organization.find({ tenantType }).sort({ createdAt: -1 });
+        return successResponse(res, 200, "Organizations fetched successfully", {
+          organizations,
+        });
       }
-
-      const tenantType = requestedTenantType || getUserTenantType(req.user);
-      if (!tenantType) {
-        return errorResponse(res, 400, "Logged-in user tenantType is required");
-      }
-
-      if (allowedTenantTypes.length && !allowedTenantTypes.includes(tenantType)) {
-        return errorResponse(
-          res,
-          403,
-          `Role ${role || "unknown"} can only request organizations within its tenant scope`
-        );
-      }
-
-      const organizations = await Organization.find({ tenantType }).sort({ createdAt: -1 });
-      return successResponse(res, 200, "Organizations fetched successfully", {
-        organizations,
-      });
     }
 
     if (isOrganizationAdmin(req.user)) {
@@ -716,6 +721,18 @@ export const getOrganizations = async (req, res) => {
   }
 };
 
+export const getActiveTenantTypes = async (req, res) => {
+  try {
+    const types = await Organization.distinct("tenantType", { status: { $in: ["active", "approved"] } });
+    return successResponse(res, 200, "Active tenant types fetched", { tenantTypes: types });
+  } catch (error) {
+    console.error("getActiveTenantTypes error:", error);
+    return errorResponse(res, 500, "Server error while fetching tenant types", {
+      error: error?.message || error,
+    });
+  }
+};
+
 export const getOrganizationsList = async (req, res) => {
   try {
     const tenantType = normalizeTenantType(req.query?.tenantType);
@@ -724,15 +741,13 @@ export const getOrganizationsList = async (req, res) => {
       return errorResponse(res, 400, "tenantType query parameter is required");
     }
 
-    if (!ALLOWED_TENANT_TYPES.has(tenantType)) {
-      return errorResponse(res, 400, "tenantType must be one of police, hospital, bank, or supermarket");
-    }
+
 
     const organizations = await Organization.find({
       tenantType,
       status: { $in: ["approved", "active"] },
     })
-      .select("_id organizationName divisionName")
+      .select("_id organizationName divisionName branding")
       .sort({ organizationName: 1 })
       .lean();
 
@@ -751,6 +766,7 @@ export const getOrganizationsList = async (req, res) => {
         return {
           _id: organization?._id,
           name,
+          branding: organization?.branding || {},
         };
       })
       .filter(Boolean);
@@ -878,5 +894,237 @@ export const updateOrganization = async (req, res) => {
     return errorResponse(res, 500, "Server error while updating organization", {
       error: error?.message || error,
     });
+  }
+};
+
+export const bulkCreateSystem = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { tenantType, branding, branches } = req.body;
+    let { organizationName } = req.body;
+
+    if (!tenantType || !branches || !Array.isArray(branches)) {
+      throw new Error("Missing required fields for system builder");
+    }
+
+    if (!organizationName || organizationName.trim() === "") {
+      organizationName = tenantType.charAt(0).toUpperCase() + tenantType.slice(1);
+    }
+
+    // 1. Create Organization
+    const orgPayload = {
+      tenantType,
+      organizationName,
+      status: "active",
+      branding: branding || {},
+    };
+
+    if (tenantType !== "police") {
+      orgPayload.organizationCode = await generateUniqueOrganizationCodeForTenant(tenantType);
+    }
+
+    const [organization] = await Organization.create([orgPayload], { session });
+
+    // Generate Organization Admin Account
+    const cleanOrgName = organizationName.replace(/\s+/g, "").toLowerCase();
+    const adminEmail = `admin@${cleanOrgName}${Date.now().toString().slice(-4)}.com`;
+    const adminPassword = `${cleanOrgName}123`;
+    const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
+
+    const [orgAdmin] = await User.create([{
+      name: `${organizationName} Admin`,
+      email: adminEmail,
+      password: hashedAdminPassword,
+      role: "organization_admin",
+      tenantType,
+      organizationId: organization._id,
+      organizationName: organization.organizationName,
+    }], { session });
+
+    const adminCredentials = { email: adminEmail, password: adminPassword };
+
+    // 2. Iterate Branches and Create
+    const results = [];
+    for (const b of branches) {
+      const branchPayload = {
+        tenantType,
+        organizationId: organization._id,
+        organizationName: organization.organizationName,
+        branchName: b.branchName || `${organizationName} Branch`,
+        city: b.city || "",
+        status: "active",
+      };
+      
+      const [branch] = await Branch.create([branchPayload], { session });
+
+      // Generate Staff Account for this branch
+      const cleanBranchName = branch.branchName.replace(/\s+/g, "").toLowerCase();
+      const staffEmail = `staff@${cleanBranchName}.${cleanOrgName}.com`;
+      const staffPassword = `${cleanBranchName}123`;
+      const hashedStaffPassword = await bcrypt.hash(staffPassword, 10);
+
+      const [staffUser] = await User.create([{
+        name: `${branch.branchName} Staff`,
+        email: staffEmail,
+        password: hashedStaffPassword,
+        role: "staff",
+        tenantType,
+        organizationId: organization._id,
+        organizationName: organization.organizationName,
+        branchId: branch._id,
+        branchName: branch.branchName,
+      }], { session });
+
+      const staffCredentials = { email: staffEmail, password: staffPassword };
+
+      const createdServices = [];
+      // 3. Iterate Services (Units) per Branch
+      if (b.units && Array.isArray(b.units)) {
+        for (const u of b.units) {
+          const servicePayload = {
+            tenantType,
+            organizationId: organization._id,
+            branchIds: [branch._id],
+            serviceName: u.serviceName || "Default Unit",
+            status: "active",
+          };
+          const [service] = await Service.create([servicePayload], { session });
+          
+          const counterPayload = {
+            tenantType,
+            organizationId: organization._id,
+            branchId: branch._id,
+            serviceId: service._id,
+            counterName: `${service.serviceName} Counter 1`,
+            status: "active",
+          };
+          const [counter] = await Counter.create([counterPayload], { session });
+          service.defaultCounterId = counter._id;
+          
+          createdServices.push(service);
+        }
+      }
+
+      results.push({
+        branch: { id: branch._id, branchName: branch.branchName },
+        services: createdServices.map(s => ({ id: s._id, serviceName: s.serviceName, counterId: s.defaultCounterId })),
+        staffCredentials
+      });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return successResponse(res, 201, "System generated successfully", {
+      organizationId: organization._id,
+      organizationName: organization.organizationName,
+      adminCredentials,
+      results
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("bulkCreateSystem error:", error);
+    return errorResponse(res, 500, error.message || "Failed to generate system");
+  }
+};
+
+export const deleteOrganization = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
+  try {
+    const { id } = req.params;
+    
+    // Find organization to ensure it exists
+    const org = await Organization.findById(id).session(session);
+    if (!org) {
+      await session.abortTransaction();
+      session.endSession();
+      return errorResponse(res, 404, "Organization not found");
+    }
+
+    // Since this is a hard delete, we delete related branches, services, and tokens.
+    // In a real scenario with SMS, we might cancel tokens here, but for Organizations,
+    // this is a Super Admin action. We will just hard delete everything.
+    await Token.deleteMany({ organizationId: id }).session(session);
+    await Service.deleteMany({ organizationId: id }).session(session);
+    await Branch.deleteMany({ organizationId: id }).session(session);
+    await User.deleteMany({ organizationId: id }).session(session);
+    await Organization.findByIdAndDelete(id).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return successResponse(res, 200, "Organization and all related data deleted successfully");
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("deleteOrganization error:", error);
+    return errorResponse(res, 500, "Failed to delete organization");
+  }
+};
+
+export const getSystemLinks = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!isValidObjectId(id)) {
+      return errorResponse(res, 400, "Invalid organization id");
+    }
+
+    const organization = await Organization.findById(id);
+    if (!organization) {
+      return errorResponse(res, 404, "Organization not found");
+    }
+
+    const cleanOrgName = organization.organizationName.replace(/\s+/g, "").toLowerCase();
+    
+    // Find organization admin
+    const adminUser = await User.findOne({ organizationId: id, role: "organization_admin" });
+    const adminCredentials = adminUser ? { 
+      email: adminUser.email, 
+      password: `${cleanOrgName}123` 
+    } : null;
+
+    // Find branches
+    const branches = await Branch.find({ organizationId: id });
+    const results = [];
+
+    for (const branch of branches) {
+      const cleanBranchName = branch.branchName.replace(/\s+/g, "").toLowerCase();
+      const services = await Service.find({ branchId: branch._id }); 
+      // If bulkCreateSystem uses branchIds instead of branchId:
+      const fallbackServices = await Service.find({ branchIds: branch._id });
+      const finalServices = services.length > 0 ? services : fallbackServices;
+
+      const staffUser = await User.findOne({ branchId: branch._id, role: "staff" });
+      
+      results.push({
+        branch: { id: branch._id, branchName: branch.branchName },
+        services: finalServices.map(s => ({ 
+          id: s._id, 
+          serviceName: s.serviceName, 
+          counterId: s.defaultCounterId 
+        })),
+        staffCredentials: staffUser ? { 
+          email: staffUser.email, 
+          password: `${cleanBranchName}123` 
+        } : null
+      });
+    }
+
+    return successResponse(res, 200, "System links fetched successfully", {
+      organizationId: organization._id,
+      organizationName: organization.organizationName,
+      tenantType: organization.tenantType,
+      adminCredentials,
+      results
+    });
+  } catch (error) {
+    console.error("getSystemLinks error:", error);
+    return errorResponse(res, 500, "Server error while fetching system links");
   }
 };

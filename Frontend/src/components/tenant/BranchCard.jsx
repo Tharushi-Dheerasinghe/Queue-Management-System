@@ -1,41 +1,57 @@
-export default function BranchCard({ branch, selected, onSelect, theme, disabled = false }) {
+export default function BranchCard({ branch, branchName, services = [], selectedServiceId, onSelectService, theme, disabled = false }) {
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={() => onSelect(branch)}
-      className={`w-full rounded-2xl border p-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
-        selected
-          ? `${theme?.border || "border-blue-200"} ${theme?.light || "bg-blue-50"} ring-4 ${theme?.ring || "ring-blue-100"}`
-          : "border-slate-200 bg-white"
-      } ${disabled ? " hover:translate-y-0 hover:shadow-sm" : "cursor-pointer"}`}
+    <div
+      className={`w-full rounded-2xl border p-6 text-left shadow-sm bg-white ${
+        theme?.border || "border-slate-200"
+      }`}
     >
-      <div
-        className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-xl ${
-          theme?.light || "bg-blue-50"
-        } ${theme?.text || "text-blue-700"}`}
-      >
-        𖠿
-      </div>
-
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center gap-3 mb-4">
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-xl text-xl ${
+            theme?.light || "bg-blue-50"
+          } ${theme?.text || "text-blue-700"}`}
+        >
+          𖠿
+        </div>
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">{branch}</h3>
-          <p className="mt-2 text-sm text-slate-500">
-            Select this branch to continue to the next step.
+          <h3 className="text-lg font-semibold text-slate-900">{branchName}</h3>
+          <p className="text-xs text-slate-500">
+            {services.length} available {services.length === 1 ? 'unit' : 'units'}
           </p>
         </div>
+      </div>
 
-        {selected && (
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold text-white ${
-              theme?.primary || "bg-blue-600"
-            }`}
-          >
-            Selected
-          </span>
+      <div className="flex flex-col gap-2 mt-4">
+        {services.length === 0 ? (
+          <p className="text-sm text-slate-400 italic">No units available</p>
+        ) : (
+          services.map(service => {
+            const isSelected = selectedServiceId === service.id;
+            return (
+              <button
+                key={service.id}
+                type="button"
+                disabled={disabled || service.isClosed}
+                onClick={() => onSelectService(branch, service)}
+                className={`w-full flex justify-between items-center px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                  isSelected 
+                    ? `${theme?.light || "bg-blue-50"} ${theme?.border || "border-blue-300"} ${theme?.text || "text-blue-700"} ring-2 ${theme?.ring || "ring-blue-100"}`
+                    : service.isClosed
+                      ? "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed"
+                      : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                <span>{service.serviceName}</span>
+                {service.isClosed ? (
+                  <span className="text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">Closed</span>
+                ) : (
+                  <span className="text-xs opacity-60">Select →</span>
+                )}
+              </button>
+            )
+          })
         )}
       </div>
-    </button>
+    </div>
   );
 }

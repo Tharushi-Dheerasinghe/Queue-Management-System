@@ -4,9 +4,9 @@ const serviceSchema = new mongoose.Schema(
   {
     tenantType: {
       type: String,
-      enum: ["police", "bank", "supermarket", "hospital"],
       required: true,
       trim: true,
+      lowercase: true,
     },
 
     organizationId: {
@@ -35,7 +35,6 @@ const serviceSchema = new mongoose.Schema(
 
     serviceName: {
       type: String,
-      unique: true,
       required: true,
       trim: true,
     },
@@ -44,6 +43,21 @@ const serviceSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
+    },
+
+    workingDays: {
+      type: [String],
+      default: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    },
+
+    availableDates: {
+      type: [String],
+      default: [],
+    },
+
+    isClosed: {
+      type: Boolean,
+      default: false,
     },
 
     status: {
@@ -64,7 +78,6 @@ const serviceSchema = new mongoose.Schema(
 
 serviceSchema.index({ tenantType: 1, divisionId: 1, createdAt: -1 });
 serviceSchema.index({ tenantType: 1, organizationId: 1, createdAt: -1 });
-serviceSchema.index({ branchId: 1, serviceName: 1 }, { unique: true });
 
 const Service = mongoose.model("Service", serviceSchema);
 

@@ -34,6 +34,8 @@ export default function AddBranch() {
     address: "",
     contactNumber: "",
     email: "",
+    openingTime: "08:00",
+    closingTime: "17:00",
     status: "active",
     branchAdminAccess: false,
     adminName: "",
@@ -92,6 +94,8 @@ export default function AddBranch() {
         address: String(formData.address || "").trim(),
         contactNumber: String(formData.contactNumber || "").trim(),
         email: String(formData.email || "").trim().toLowerCase(),
+        openingTime: formData.openingTime,
+        closingTime: formData.closingTime,
         status: String(formData.status || "active").trim().toLowerCase(),
         branchAdminAccess: Boolean(formData.branchAdminAccess),
         adminName: String(formData.adminName || "").trim(),
@@ -242,6 +246,37 @@ export default function AddBranch() {
                 onChange={handleChange}
                 className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-sky-100"
                 placeholder="branch@example.com"
+              />
+            </div>
+          </div>
+
+          {/* Opening & Closing Time */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div>
+              <label htmlFor="openingTime" className="mb-1.5 block text-sm font-medium text-slate-700">
+                Opening Time
+              </label>
+              <input
+                id="openingTime"
+                name="openingTime"
+                type="time"
+                value={formData.openingTime}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-sky-100"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="closingTime" className="mb-1.5 block text-sm font-medium text-slate-700">
+                Closing Time
+              </label>
+              <input
+                id="closingTime"
+                name="closingTime"
+                type="time"
+                value={formData.closingTime}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-sky-100"
               />
             </div>
           </div>

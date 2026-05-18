@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import Button from "../../components/common/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useTenant } from "../../context/TenantContext";
@@ -8,20 +10,12 @@ import { clearQueueToken, createQueueToken } from "../../services/queueService";
 import { legacyStorageKeys, readValue, storageKeys } from "../../utils/storage";
 
 export default function BookToken() { // <-- මෙතනින් function එක පටන් ගන්න
-  const { tenantType, theme, selectedBranch, selectedService } = useTenant();
+  const { tenantType, theme, selectedBranch, selectedService, selectedDate } = useTenant();
   const navigate = useNavigate();
   const location = useLocation();
   const canGenerateToken = Boolean(selectedBranch?.id && selectedService?.id);
 
-  // Auth check
-  const token = localStorage.getItem("token");
-  const user = localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user")) : null;
-
-  useEffect(() => {
-    if (!token) {
-      navigate("/user/login", { state: { from: location.pathname } });
-    }
-  }, [token, navigate, location.pathname]);
+  // Auth check removed - Guest flow allowed
 
   const scopedOrganization = readValue(
     localStorage,
@@ -37,7 +31,10 @@ export default function BookToken() { // <-- මෙතනින් function එ�
   const [formData, setFormData] = useState({
     fullName: "",
     mobile: "07",
+    nic: "",
+    age: "",
     note: "",
+    bookingDate: selectedDate || new Date().toISOString().split("T")[0],
   });
   const [generatedTokenData, setGeneratedTokenData] = useState(null);
   const [showQr, setShowQr] = useState(false);
@@ -80,14 +77,14 @@ export default function BookToken() { // <-- මෙතනින් function එ�
       return;
     }
 
-    if (!token || !user) {
-      navigate("/user/login", { state: { from: location.pathname } });
-      return;
-    }
-
     // Validate mobile: must start with '07' and be exactly 10 chars (07 + 8 digits)
     if (!formData.mobile || !String(formData.mobile).startsWith("07") || String(formData.mobile).length !== 10) {
       setError("Please enter a valid phone number (e.g., 071 234 5678)");
+      return;
+    }
+
+    if (!formData.nic || !formData.age) {
+      setError("Please provide your NIC and Age.");
       return;
     }
 
@@ -102,8 +99,12 @@ export default function BookToken() { // <-- මෙතනින් function එ�
         serviceId: selectedService.id,
         fullName: formData.fullName,
         mobile: formData.mobile,
+        nic: formData.nic,
+        age: Number(formData.age),
         note: formData.note,
-        userId: user?._id || user?.id,
+        bookingDate: formData.bookingDate,
+        // Optional userId for guests
+        userId: localStorage.getItem("user") ? JSON.parse(localStorage.getItem("user"))?.id : null,
       });
       setGeneratedTokenData(tokenData);
       setShowQr(false);
@@ -132,7 +133,10 @@ export default function BookToken() { // <-- මෙතනින් function එ�
     setFormData({
       fullName: "",
       mobile: "07",
+      nic: "",
+      age: "",
       note: "",
+      bookingDate: selectedDate || new Date().toISOString().split("T")[0],
     });
     setGeneratedTokenData(null);
     setShowQr(false);
@@ -164,6 +168,25 @@ export default function BookToken() { // <-- මෙතනින් function එ�
     link.click();
   };
 
+  const handleDownloadPdf = async () => {
+    const receiptElement = document.getElementById("token-receipt");
+    if (!receiptElement || !generatedTokenData) return;
+
+    try {
+      const canvas = await html2canvas(receiptElement, { scale: 2 });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Token-${generatedTokenData.tokenNumber}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+    }
+  };
+
   return (
     <div ref={topRef} className="mx-auto max-w-4xl space-y-6">
       {/* ඔයාගේ ඉතිරි UI එක මෙතන තියෙනවා */}
@@ -181,7 +204,7 @@ export default function BookToken() { // <-- මෙතනින් function එ�
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div
           className={`rounded-2xl border bg-gradient-to-br p-5 shadow-sm ${
             theme?.border || "border-blue-200"
@@ -202,6 +225,17 @@ export default function BookToken() { // <-- මෙතනින් function එ�
             Selected Service
           </p>
           <h3 className="mt-1 font-semibold text-slate-900">{selectedService?.serviceName || "Not selected"}</h3>
+        </div>
+
+        <div
+          className={`rounded-2xl border bg-gradient-to-br p-5 shadow-sm ${
+            theme?.border || "border-blue-200"
+          } ${theme?.light || "from-blue-50"} to-white`}
+        >
+          <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${theme?.text || "text-blue-700"}`}>
+            Booking Date
+          </p>
+          <h3 className="mt-1 font-semibold text-slate-900">{formData.bookingDate || "Today"}</h3>
         </div>
       </div>
 
@@ -240,6 +274,35 @@ export default function BookToken() { // <-- මෙතනින් function එ�
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">NIC</label>
+                <input
+                  type="text"
+                  name="nic"
+                  value={formData.nic}
+                  onChange={handleChange}
+                  placeholder="ID Number"
+                  className={`w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${theme?.ring || "focus:ring-blue-100"}`}
+                  required
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Age</label>
+                <input
+                  type="number"
+                  name="age"
+                  min="0"
+                  max="120"
+                  value={formData.age}
+                  onChange={handleChange}
+                  placeholder="Age"
+                  className={`w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${theme?.ring || "focus:ring-blue-100"}`}
+                  required
+                />
+              </div>
+            </div>
+
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Note</label>
               <textarea
@@ -265,6 +328,7 @@ export default function BookToken() { // <-- මෙතනින් function එ�
         </div>
       ) : (
         <div
+          id="token-receipt"
           className={`rounded-3xl border bg-gradient-to-br p-6 shadow-md sm:p-8 ${
             theme?.border || "border-blue-200"
           } from-white ${theme?.light || "via-blue-50"} to-white`}
@@ -275,11 +339,15 @@ export default function BookToken() { // <-- මෙතනින් function එ�
                 Token Generated
               </p>
               <h2 className="mt-3 text-2xl font-bold text-slate-900">Booking Confirmed</h2>
+              <div className="mt-4 space-y-1 text-sm text-slate-600">
+                <p><strong>Name:</strong> {generatedTokenData.fullName}</p>
+                <p><strong>NIC:</strong> {generatedTokenData.nic}</p>
+              </div>
             </div>
             <div className={`rounded-2xl border bg-white px-6 py-4 text-center shadow-sm ${theme?.border || "border-blue-200"}`}>
               <p className={`text-xs font-semibold uppercase tracking-[0.14em] ${theme?.text || "text-blue-700"}`}>Token Number</p>
               <p className={`mt-1 text-3xl font-bold ${theme?.darkText || "text-blue-900"}`}>{generatedTokenData.tokenNumber}</p>
-              <Button onClick={() => setShowQr((prev) => !prev)} theme={theme} className="mt-3 w-full px-3 py-2 text-xs">
+              <Button onClick={() => setShowQr((prev) => !prev)} theme={theme} className="mt-3 w-full px-3 py-2 text-xs" data-html2canvas-ignore>
                 {showQr ? "Hide QR" : "Get QR"}
               </Button>
             </div>
@@ -298,12 +366,15 @@ export default function BookToken() { // <-- මෙතනින් function එ�
             </div>
           )}
 
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3" data-html2canvas-ignore>
             <Button onClick={() => navigate(`/${tenantType}/queue-status`)} theme={theme} className="w-full">
-              View Queue Status
+              View Queue
             </Button>
             <Button onClick={handleBookAnother} variant="secondary" theme={theme} className="w-full">
               Book Another
+            </Button>
+            <Button onClick={handleDownloadPdf} variant="secondary" theme={theme} className="w-full border-blue-500 text-blue-700">
+              Download PDF
             </Button>
           </div>
         </div>

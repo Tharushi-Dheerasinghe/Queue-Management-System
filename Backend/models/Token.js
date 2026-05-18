@@ -64,11 +64,22 @@ const tokenSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  nic: {
+    type: String,
+    required: false,
+    trim: true,
+  },
+  age: {
+    type: Number,
+    required: false,
+    min: 0,
+    default: null,
+  },
 
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true,
+    required: false,
     index: true,
   },
   note: {
@@ -101,6 +112,10 @@ const tokenSchema = new mongoose.Schema({
   status: {
     type: String,
     default: "Waiting",
+  },
+  bookingDate: {
+    type: String,
+    required: true,
   },
   skippedAt: {
     type: Date,

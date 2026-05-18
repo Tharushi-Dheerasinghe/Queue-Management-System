@@ -4,13 +4,14 @@ const branchSchema = new mongoose.Schema(
   {
     tenantType: {
       type: String,
-      enum: ["police", "bank", "supermarket", "hospital"],
       required: true,
       trim: true,
+      lowercase: true,
     },
 
     organizationId: {
       type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
       default: null,
     },
 
@@ -49,7 +50,6 @@ const branchSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
       trim: true,
-      default: null,
     },
 
     city: {
@@ -97,6 +97,14 @@ const branchSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    openingTime: {
+      type: String,
+      default: "08:00",
+    },
+    closingTime: {
+      type: String,
+      default: "17:00",
+    },
     services: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -110,10 +118,10 @@ const branchSchema = new mongoose.Schema(
 
 branchSchema.pre("validate", function () {
   if (
-    ["bank", "supermarket", "hospital"].includes(this.tenantType) &&
+    this.tenantType !== "police" &&
     !this.organizationId
   ) {
-    throw new Error("Bank, supermarket, and hospital branches require organizationId");
+    throw new Error("Non-police branches require an organizationId");
   }
 });
 

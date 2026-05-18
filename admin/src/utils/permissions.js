@@ -131,6 +131,7 @@ export const roleSidebarLinks = {
   ],
   [CANONICAL_ROLES.COMPANY_SUPER_ADMIN]: [
     { label: "Dashboard", to: "/company-super-admin/dashboard" },
+    { label: "System Builder", to: "/company-super-admin/system-builder" },
     { label: "Organizations", to: "/company-super-admin/organizations" },
     { label: "Branches", to: "/company-super-admin/branches" },
     { label: "Branch Requests", to: "/company-super-admin/branch-requests" },

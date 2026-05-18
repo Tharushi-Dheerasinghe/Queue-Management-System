@@ -510,67 +510,9 @@ export const loginUser = async (req, res) => {
 
     const normalizedEmail = normalizeEmail(email);
 
-    // Legacy and migration-safe super-admins continue to authenticate via env credentials.
-    const superAdminConfigs = [
-      {
-        email: process.env.POLICE_ADMIN_EMAIL,
-        password: process.env.POLICE_ADMIN_PASSWORD,
-        role: "police_super_admin",
-        tenantType: "police",
-      },
-      {
-        email: process.env.HOSPITAL_ADMIN_EMAIL,
-        password: process.env.HOSPITAL_ADMIN_PASSWORD,
-        role: "hospital_super_admin",
-        tenantType: "hospital",
-      },
-      {
-        email: process.env.COMPANY_ADMIN_EMAIL,
-        password: process.env.COMPANY_ADMIN_PASSWORD,
-        role: "company_super_admin",
-        tenantType: "company",
-      },
-      {
-        email: process.env.SUPER_ADMIN_EMAIL,
-        password: process.env.SUPER_ADMIN_PASSWORD,
-        role: "super_admin",
-        tenantType: normalizeTenantType(process.env.SUPER_ADMIN_TENANT_TYPE),
-      },
-    ];
-
-    const matchedSuperAdmin = superAdminConfigs.find((config) => {
-      if (!config.email || !config.password) {
-        return false;
-      }
-
-      return normalizeEmail(config.email) === normalizedEmail && String(config.password) === String(password);
-    });
-
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
       return errorResponse(res, 500, "JWT_SECRET is not configured");
-    }
-
-    if (matchedSuperAdmin) {
-      const userPayload = {
-        id: `env_${matchedSuperAdmin.role}`,
-        name: matchedSuperAdmin.role,
-        email: normalizeEmail(matchedSuperAdmin.email),
-        role: matchedSuperAdmin.role,
-        tenantType: matchedSuperAdmin.tenantType || null,
-        organizationId: null,
-        organizationName: null,
-        branchId: null,
-        branchName: null,
-        status: "active",
-      };
-
-      const token = jwt.sign(userPayload, jwtSecret, { expiresIn: "7d" });
-
-      return successResponse(res, 200, "Login successful", {
-        token,
-        user: userPayload,
-      });
     }
 
     const user = await User.findOne({ email: normalizedEmail });

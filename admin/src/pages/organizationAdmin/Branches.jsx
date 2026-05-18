@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getBranches } from "../../services/branchService";
 import { getMyBranchRequests } from "../../services/branchRequestService";
+import api from "../../services/api";
 
 // Shared organization-admin page for tenant-scoped branch management.
 export default function SharedOrganizationAdminBranches() {
@@ -52,6 +53,18 @@ export default function SharedOrganizationAdminBranches() {
 
   const handleAddBranch = () => {
     navigate("/organization-admin/add-branch");
+  };
+
+  const handleDeleteBranch = async (id) => {
+    if (window.confirm("WARNING: Are you sure you want to delete this branch? Pending tokens will be cancelled and notified via SMS.")) {
+      try {
+        await api.delete(`/branches/${id}`);
+        setBranches((prev) => prev.filter((b) => b.id !== id));
+        alert("Branch deleted successfully.");
+      } catch (err) {
+        alert(err?.response?.data?.message || "Failed to delete branch");
+      }
+    }
   };
 
   const formatStatusLabel = (status) => status?.charAt(0).toUpperCase() + status?.slice(1);
@@ -109,6 +122,7 @@ export default function SharedOrganizationAdminBranches() {
                   <th className="px-4 py-3 text-left font-semibold text-slate-900">City</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-900">Status</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-900">Contact</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-900">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -131,6 +145,28 @@ export default function SharedOrganizationAdminBranches() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-600">{branch.contactNumber || "—"}</td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <a
+                        href={`http://localhost:5173/${tenantType}/display/${branch.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center rounded-lg bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
+                      >
+                        📺 TV
+                      </a>
+                      <a
+                        href="/staff/dashboard"
+                        className="inline-flex items-center rounded-lg bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100"
+                      >
+                        🖥️ Kiosk
+                      </a>
+                      <button
+                        onClick={() => handleDeleteBranch(branch.id)}
+                        className="inline-flex items-center rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-100"
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -64,6 +64,15 @@ export const skipAndCallNextToken = async (counterId) => {
   }
 };
 
+export const recallTokenAPI = async (tokenId, counterId) => {
+  try {
+    const response = await api.post(`/tokens/${tokenId}/recall`, { counterId });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { success: false, message: "Error recalling token" };
+  }
+};
+
 // පෝලිමේ ඉන්න ගණන බලාගන්න (මේකට backend එකේ endpoint එකක් පසුව හදමු, දැනට fetchTokens පාවිච්චි කළ හැකියි)
 export const getWaitingTokenCount = async (params) => {
   try {
@@ -85,6 +94,17 @@ export const getNextWaitingToken = async (serviceId, branchId) => {
   }
 };
 
+export const getWaitingTokensList = async (branchId, serviceId = "") => {
+  try {
+    const params = { branchId };
+    if (serviceId) params.serviceId = serviceId;
+    const response = await api.get("/tokens/waiting-list", { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { success: false, message: "Error fetching waiting list" };
+  }
+};
+
 export const getProcessedTokens = async (counterId, limit = 20) => {
   try {
     const response = await api.get("/tokens/processed-history", {
@@ -93,5 +113,45 @@ export const getProcessedTokens = async (counterId, limit = 20) => {
     return response.data;
   } catch (error) {
     throw error.response?.data || { success: false, message: "Error fetching processed tokens" };
+  }
+};
+
+export const getActiveTokens = async (branchId, serviceId = "") => {
+  try {
+    const params = { branchId };
+    if (serviceId) params.serviceId = serviceId;
+    const response = await api.get("/tokens/active-tokens", { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { success: false, message: "Error fetching active tokens" };
+  }
+};
+
+export const getWaitRejectedList = async (branchId, serviceId = "") => {
+  try {
+    const params = { branchId };
+    if (serviceId) params.serviceId = serviceId;
+    const response = await api.get("/tokens/wait-rejected-list", { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { success: false, message: "Error fetching wait/rejected list" };
+  }
+};
+
+export const updateTokenStatus = async (tokenId, status) => {
+  try {
+    const response = await api.patch(`/tokens/${tokenId}/status`, { status });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { success: false, message: "Error updating token status" };
+  }
+};
+
+export const createWalkInToken = async (payload) => {
+  try {
+    const response = await api.post("/tokens", payload);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { success: false, message: "Error creating walk-in token" };
   }
 };

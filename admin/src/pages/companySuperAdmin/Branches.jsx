@@ -147,8 +147,7 @@ function BranchTable({ title, addLabel, onAdd, data }) {
 
 export default function CompanySuperAdminBranches() {
   const navigate = useNavigate();
-  const [bankBranches, setBankBranches] = useState([]);
-  const [supermarketBranches, setSupermarketBranches] = useState([]);
+  const [groupedBranches, setGroupedBranches] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -167,10 +166,14 @@ export default function CompanySuperAdminBranches() {
 
         if (!isMounted) return;
 
-        setBankBranches(normalized.filter((b) => b.tenantType === "bank"));
-        setSupermarketBranches(
-          normalized.filter((b) => b.tenantType === "supermarket")
-        );
+        const grouped = normalized.reduce((acc, branch) => {
+          const type = branch.tenantType || "other";
+          if (!acc[type]) acc[type] = [];
+          acc[type].push(branch);
+          return acc;
+        }, {});
+
+        setGroupedBranches(grouped);
       } catch (err) {
         if (!isMounted) return;
         setError(
@@ -194,25 +197,35 @@ export default function CompanySuperAdminBranches() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Branch Management</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Branch Management</h1>
+        <button
+          onClick={() => navigate("/company-super-admin/system-builder")}
+          className="bg-sky-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-sky-700 shadow-sm"
+        >
+          + Open System Builder
+        </button>
+      </div>
 
       {error && (
         <div className="text-red-600 text-sm">{error}</div>
       )}
 
-      <BranchTable
-        title="Bank Branches"
-        data={bankBranches}
-        addLabel="Add Bank Branch"
-        onAdd={() => navigate("/company-super-admin/add-bank-branch")}
-      />
-
-      <BranchTable
-        title="Supermarket Branches"
-        data={supermarketBranches}
-        addLabel="Add Supermarket Branch"
-        onAdd={() => navigate("/company-super-admin/add-supermarket-branch")}
-      />
+      {Object.keys(groupedBranches).length === 0 && !error ? (
+        <div className="bg-white p-8 rounded-2xl border text-center text-slate-500 shadow-sm">
+          No branches found. Use the System Builder to create branches for your organizations.
+        </div>
+      ) : (
+        Object.entries(groupedBranches).map(([type, branches]) => (
+          <BranchTable
+            key={type}
+            title={`${type.charAt(0).toUpperCase() + type.slice(1)} Branches`}
+            data={branches}
+            addLabel={`Open System Builder`}
+            onAdd={() => navigate("/company-super-admin/system-builder")}
+          />
+        ))
+      )}
     </div>
   );
 }

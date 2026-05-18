@@ -53,8 +53,9 @@ const userSchema = new mongoose.Schema(
 
     tenantType: {
       type: String,
-      enum: ["hospital", "police", "bank", "supermarket","company", null],
       default: null,
+      lowercase: true,
+      trim: true,
       required: function () {
         return this.role === "staff";
       },
@@ -68,11 +69,7 @@ const userSchema = new mongoose.Schema(
           return false;
         }
 
-        return (
-          ["bank", "supermarket", "hospital", "company"].includes(
-            String(this.tenantType || "").trim().toLowerCase()
-          )
-        );
+        return String(this.tenantType || "").trim().toLowerCase() !== "police";
       },
     },
 

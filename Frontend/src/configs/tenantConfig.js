@@ -278,3 +278,33 @@ export const tenantConfig = {
     },
   },
 };
+
+export const getTenantConfig = (tenantType) => {
+  if (tenantConfig[tenantType]) {
+    return tenantConfig[tenantType];
+  }
+  
+  // Default fallback for dynamically added tenants (e.g. Salon, Pharmacy)
+  const displayTitle = tenantType ? (tenantType.charAt(0).toUpperCase() + tenantType.slice(1)) : "Organization";
+  return {
+    name: `${displayTitle} Services`,
+    shortName: displayTitle,
+    description: `Manage queues for ${displayTitle} services.`,
+    bookingType: "token",
+    organizations: [],
+    services: [],
+    icon: null, // Will use default SVG fallback in UI
+    theme: {
+      primary: "bg-teal-600",
+      primaryHover: "hover:bg-teal-700",
+      light: "bg-teal-50",
+      soft: "bg-teal-100",
+      text: "text-teal-700",
+      darkText: "text-teal-900",
+      border: "border-teal-200",
+      ring: "ring-teal-100",
+      gradient: "from-teal-600 to-cyan-400",
+      button: "bg-teal-600 hover:bg-teal-700 text-white",
+    },
+  };
+};

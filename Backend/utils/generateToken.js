@@ -4,49 +4,35 @@ const normalizeWords = (value = "") =>
     .split(/\s+/)
     .filter(Boolean);
 
-const firstLetter = (value = "", fallback = "X") => {
-  const word = normalizeWords(value)[0];
-  return (word?.charAt(0) || fallback).toUpperCase();
-};
-
-export const getTenantCode = (tenantType = "") => {
-  const map = {
-    bank: "B",
-    hospital: "H",
-    police: "P",
-    supermarket: "S",
-  };
-
-  return map[String(tenantType).trim().toLowerCase()] || firstLetter(tenantType, "X");
-};
-
-export const getOrganizationCode = (organization = "") => firstLetter(organization, "X");
-
-export const getBranchCode = (city = "") => firstLetter(city, "X");
-
-export const getServiceCode = (service = "") => {
-  const words = normalizeWords(service);
-
+const buildCode = (value = "", length = 2, fallback = "X") => {
+  const words = normalizeWords(value);
   if (words.length === 0) {
-    return "X";
+    return fallback.repeat(length);
   }
 
-  return words[0].charAt(0).toUpperCase();
-};
-
-export const getServiceIdCode = (serviceId) => {
-  try {
-    // Handle both MongoDB ObjectId and string
-    const idString = String(serviceId || "");
-    const firstChar = idString.charAt(0);
-    return (firstChar || "X").toUpperCase();
-  } catch (error) {
-    return "X";
+  const initials = words.map((word) => String(word[0] || "").toUpperCase()).join("");
+  if (initials.length >= length) {
+    return initials.slice(0, length);
   }
+
+  const firstWord = String(words[0] || "").toUpperCase();
+  const extra = firstWord.slice(1, length - initials.length + 1);
+  return (initials + extra).padEnd(length, fallback).slice(0, length);
 };
 
-export const buildTokenPrefix = ({ tenantType, organization, city, service, serviceId }) => {
-  return `${getTenantCode(tenantType)}${getOrganizationCode(organization)}${getBranchCode(city)}${getServiceCode(service)}${getServiceIdCode(serviceId)}`;
+export const getOrganizationCode = (organization = "") => buildCode(organization, 2, "O");
+
+export const getBranchCode = (branchName = "") => buildCode(branchName, 2, "B");
+
+export const getServiceCode = (service = "") => buildCode(service, 2, "S");
+
+export const buildTokenPrefix = ({ tenantType, organization, branchName, city, service, serviceId }) => {
+  const orgCode = getOrganizationCode(organization);
+  const branchCode = getBranchCode(branchName || city);
+  const serviceCode = getServiceCode(service);
+
+  return `${orgCode}-${branchCode}-${serviceCode}`;
 };
 
-export const formatSequenceNumber = (sequenceNumber) => String(sequenceNumber).padStart(5, "0");
+export const formatSequenceNumber = (sequenceNumber) => String(sequenceNumber).padStart(3, "0");
+

@@ -29,7 +29,18 @@ const mapOrganization = (organization) => {
   return {
     id: organization._id || organization.id || "",
     name,
+    branding: organization.branding || {},
   };
+};
+
+export const getActiveTenantTypes = async () => {
+  try {
+    const { data } = await client.get("/organizations/tenant-types");
+    return Array.isArray(data?.tenantTypes) ? data.tenantTypes : [];
+  } catch (error) {
+    console.error("Error fetching active tenant types:", error);
+    return [];
+  }
 };
 
 export const getOrganizationsForTenant = async ({ tenantType }) => {
@@ -131,12 +142,41 @@ export const getBranchesForTenantSelection = async ({ tenantType, organizationId
     },
   });
 
-  return Array.isArray(data?.branches)
+  const branches = Array.isArray(data?.branches)
     ? data.branches.map((branch) => ({
         id: branch.id || branch._id,
         branchName: normalize(branch.branchName),
       }))
     : [];
+
+  // Fetch services for each branch to support unified selection
+  const branchesWithServices = await Promise.all(
+    branches.map(async (branch) => {
+      try {
+        const { data: serviceData } = await getServicesRequest({
+          tenantType: normalizedTenantType,
+          branchId: branch.id,
+        });
+        
+        return {
+          ...branch,
+          services: Array.isArray(serviceData?.services)
+            ? serviceData.services.map(s => ({
+                id: s.id || s._id,
+                serviceName: normalize(s.serviceName),
+                workingDays: s.workingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                isClosed: Boolean(s.isClosed)
+              }))
+            : []
+        };
+      } catch (err) {
+        console.error(`Failed to fetch services for branch ${branch.id}`, err);
+        return { ...branch, services: [] };
+      }
+    })
+  );
+
+  return branchesWithServices;
 };
 
 export const getServicesForTenantSelection = async ({ tenantType, branchId }) => {

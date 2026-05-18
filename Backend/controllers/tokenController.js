@@ -7,7 +7,7 @@ import WorkSession from "../models/WorkSession.js";
 import { buildTokenPrefix, formatSequenceNumber } from "../utils/generateToken.js";
 import { normalizeTenantType } from "../utils/scopeHelpers.js";
 import Counter from "../models/Counter.js";
-
+import { getIo } from "../utils/socket.js";
 
 const normalize = (value = "") => String(value || "").trim();
 const normalizeLower = (value = "") => normalize(value).toLowerCase();
@@ -118,9 +118,14 @@ export const createToken = async (req, res) => {
       serviceId,
       fullName,
       mobile,
+      nic,
+      age,
       note,
+      bookingDate,
       userId,
     } = req.body || {};
+
+    const finalBookingDate = bookingDate || new Date().toISOString().split("T")[0];
 
     if (!branchId || !serviceId || !fullName || !mobile) {
       return res.status(400).json({
@@ -245,7 +250,7 @@ export const createToken = async (req, res) => {
     const tokenPrefix = buildTokenPrefix({
       tenantType: resolvedTenantType,
       organization: finalOrganizationName,
-      city: branch.city,
+      branchName: finalBranchName,
       service: finalServiceName,
       serviceId: service._id,
     });
@@ -260,11 +265,13 @@ export const createToken = async (req, res) => {
       serviceName: finalServiceName,
     });
 
+    // Scope token sequence by the booking date
+    tokenQuery.bookingDate = finalBookingDate;
+
     let createdToken = null;
+    let sequenceNumber = await Token.countDocuments(tokenQuery) + 1;
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      const existingCount = await Token.countDocuments(tokenQuery);
-      const sequenceNumber = existingCount + 1;
       const tokenNumber = `${tokenPrefix}-${formatSequenceNumber(sequenceNumber)}`;
 
       // Calculate peopleAhead as the count of currently waiting tokens for this branch & service
@@ -288,7 +295,10 @@ export const createToken = async (req, res) => {
         service: finalServiceName,
         fullName: normalize(fullName),
         mobile: normalize(mobile),
+        nic: normalize(nic),
+        age: Number(age),
         note: normalize(note),
+        bookingDate: finalBookingDate,
         userId: userId || req.user?.id || null,
         tokenPrefix,
         tokenNumber,
@@ -316,7 +326,15 @@ export const createToken = async (req, res) => {
         if (saveError?.code !== 11000 || attempt === 2) {
           throw saveError;
         }
+
+        // If a duplicate tokenNumber is encountered, bump the sequence and retry.
+        sequenceNumber += 1;
       }
+    }
+
+    const io = getIo();
+    if (io) {
+      io.to(branch._id.toString()).emit("queueUpdated", { action: "createToken", token: createdToken });
     }
 
     return res.status(201).json({ success: true, token: createdToken });
@@ -364,6 +382,11 @@ export const updateTokenStatus = async (req, res) => {
       module: token.tenantType,
       userId: token.userId || req.user?.id
     });
+
+    const io = getIo();
+    if (io && token.branchId) {
+      io.to(token.branchId.toString()).emit("queueUpdated", { action: "updateStatus", token });
+    }
 
     return res.status(200).json({ success: true, token });
   } catch (error) {
@@ -576,6 +599,11 @@ export const callNextToken = async (req, res) => {
       await counter.save();
     }
 
+    const io = getIo();
+    if (io) {
+      io.to(counter.branchId.toString()).emit("queueUpdated", { action: "callNextToken", token: nextToken, counterId: counter.id });
+    }
+
     return res.status(200).json({ success: true, token: nextToken });
   } catch (error) {
     console.error("callNextToken error:", error);
@@ -658,6 +686,11 @@ export const skipAndCallNextToken = async (req, res) => {
     if (counter.status !== "active") {
       counter.status = "active";
       await counter.save();
+    }
+
+    const io = getIo();
+    if (io) {
+      io.to(counter.branchId.toString()).emit("queueUpdated", { action: "skipAndCallNextToken", token: nextToken, counterId: counter.id });
     }
 
     return res.status(200).json({ success: true, token: nextToken });
@@ -761,5 +794,268 @@ export const getProcessedTokensByCounter = async (req, res) => {
   } catch (error) {
     console.error("getProcessedTokensByCounter error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const completeAndCallNextToken = async (req, res) => {
+  try {
+    const { counterId } = req.body;
+
+    if (!counterId || !mongoose.Types.ObjectId.isValid(counterId)) {
+      return res.status(400).json({ success: false, message: "Invalid or missing Counter ID format" });
+    }
+
+    const counter = await Counter.findById(counterId);
+    if (!counter) {
+      return res.status(404).json({ success: false, message: "Counter not found" });
+    }
+
+    const activeCalledTokens = await Token.find({
+      counterId: new mongoose.Types.ObjectId(counterId),
+      status: "Called",
+    });
+
+    for (const activeCalledToken of activeCalledTokens) {
+      activeCalledToken.status = "Completed";
+      activeCalledToken.completedAt = new Date();
+      await activeCalledToken.save();
+
+      await createNotification({
+        tenantType: activeCalledToken.tenantType,
+        tokenNumber: activeCalledToken.tokenNumber,
+        title: "Service Completed",
+        message: `Your session for token ${activeCalledToken.tokenNumber} has been successfully completed. Thank you!`,
+        type: "completed",
+        module: activeCalledToken.tenantType,
+        userId: activeCalledToken.userId,
+      });
+    }
+
+    const nextToken = await Token.findOne({
+      branchId: counter.branchId,
+      serviceId: counter.serviceId,
+      status: "Waiting"
+    }).sort({ sequenceNumber: 1 });
+
+    if (!nextToken) {
+      if (counter.status !== 'active') {
+        counter.status = 'active';
+        await counter.save();
+      }
+      return res.status(200).json({ success: true, token: null, message: "No tokens waiting", remainingCount: 0 });
+    }
+
+    nextToken.status = "Called";
+    nextToken.counterId = counter.id;
+    nextToken.startedAt = new Date();
+    await nextToken.save();
+
+    await createNotification({
+      tenantType: nextToken.tenantType,
+      tokenNumber: nextToken.tokenNumber,
+      title: "It's Your Turn!",
+      message: `Token ${nextToken.tokenNumber} is now being called at Counter ${counter.counterName || "Counter"}.`,
+      type: "called",
+      module: nextToken.tenantType,
+      userId: nextToken.userId,
+    });
+
+    if (counter.status !== 'active') {
+      counter.status = 'active';
+      await counter.save();
+    }
+
+    const io = getIo();
+    if (io) {
+      io.to(counter.branchId.toString()).emit("queueUpdated", { action: "iotNextToken", token: nextToken, counterId: counter.id });
+    }
+
+    const remainingCount = await Token.countDocuments({
+      branchId: counter.branchId,
+      serviceId: counter.serviceId,
+      status: "Waiting"
+    });
+
+    return res.status(200).json({ success: true, token: nextToken, remainingCount });
+  } catch (error) {
+    console.error("completeAndCallNext error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getIotQueueStatus = async (req, res) => {
+  try {
+    const { counterId } = req.query; 
+
+    if (!counterId || !mongoose.Types.ObjectId.isValid(counterId)) {
+      return res.status(400).json({ success: false, message: "Invalid or missing Counter ID" });
+    }
+
+    const counter = await Counter.findById(counterId);
+    if (!counter) {
+      return res.status(404).json({ success: false, message: "Counter not found" });
+    }
+
+    const remainingCount = await Token.countDocuments({
+      branchId: counter.branchId,
+      serviceId: counter.serviceId,
+      status: "Waiting"
+    });
+
+    const activeToken = await Token.findOne({
+      counterId: counter._id,
+      status: "Called"
+    });
+
+    return res.status(200).json({ 
+      success: true, 
+      remainingCount, 
+      hasActiveToken: !!activeToken,
+      activeTokenNumber: activeToken ? activeToken.tokenNumber : null
+    });
+  } catch (error) {
+    console.error("getIotQueueStatus error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const recallToken = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { counterId } = req.body;
+
+    if (!counterId || !mongoose.Types.ObjectId.isValid(counterId)) {
+      return res.status(400).json({ success: false, message: "Invalid or missing Counter ID" });
+    }
+
+    const token = await Token.findById(id);
+    if (!token) {
+      return res.status(404).json({ success: false, message: "Token not found" });
+    }
+
+    if (token.status !== "Late" && token.status !== "Skipped") {
+      return res.status(400).json({ success: false, message: "Only Late or Skipped tokens can be recalled" });
+    }
+
+    const counter = await Counter.findById(counterId);
+    if (!counter) {
+      return res.status(404).json({ success: false, message: "Counter not found" });
+    }
+
+    // Complete any currently active token
+    const activeCalledTokens = await Token.find({
+      counterId: new mongoose.Types.ObjectId(counterId),
+      status: "Called",
+    });
+
+    for (const activeCalledToken of activeCalledTokens) {
+      activeCalledToken.status = "Completed";
+      activeCalledToken.completedAt = new Date();
+      await activeCalledToken.save();
+    }
+
+    // Update the recalled token
+    token.status = "Called";
+    token.counterId = counter.id;
+    token.startedAt = new Date();
+    await token.save();
+
+    await createNotification({
+      tenantType: token.tenantType,
+      tokenNumber: token.tokenNumber,
+      title: "It's Your Turn! (Recalled)",
+      message: `Token ${token.tokenNumber} is now being recalled at Counter ${counter.counterName || "Counter"}. Please proceed to the counter immediately.`,
+      type: "called",
+      module: token.tenantType,
+      userId: token.userId,
+    });
+
+    if (counter.status !== 'active') {
+      counter.status = 'active';
+      await counter.save();
+    }
+
+    const io = getIo();
+    if (io) {
+      io.to(counter.branchId.toString()).emit("queueUpdated", { action: "recallToken", token: token, counterId: counter.id });
+    }
+
+    return res.status(200).json({ success: true, token });
+  } catch (error) {
+    console.error("recallToken error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get waiting tokens list
+export const getWaitingTokensList = async (req, res) => {
+  try {
+    const { branchId, serviceId } = req.query;
+
+    if (!branchId) {
+      return res.status(400).json({ success: false, message: "branchId is required" });
+    }
+
+    const query = { branchId, status: "Waiting" };
+    if (serviceId) query.serviceId = serviceId;
+
+    const tokens = await Token.find(query)
+      .sort({ sequenceNumber: 1 })
+      .select("tokenNumber fullName sequenceNumber createdAt estimatedWait note serviceId")
+      .lean();
+
+    res.status(200).json({ success: true, count: tokens.length, tokens });
+  } catch (error) {
+    console.error("Error fetching waiting tokens list:", error);
+    res.status(500).json({ success: false, message: "Error fetching waiting tokens list" });
+  }
+};
+
+export const getWaitRejectedList = async (req, res) => {
+  try {
+    const { branchId, serviceId } = req.query;
+    if (!branchId) {
+      return res.status(400).json({ success: false, message: "branchId is required" });
+    }
+
+    const query = { 
+      branchId, 
+      status: { $in: ["Late", "Skipped"] } 
+    };
+    if (serviceId) query.serviceId = serviceId;
+
+    const tokens = await Token.find(query)
+      .sort({ updatedAt: -1 })
+      .select("tokenNumber fullName status serviceId counterId")
+      .lean();
+
+    res.status(200).json({ success: true, count: tokens.length, tokens });
+  } catch (error) {
+    console.error("Error fetching wait/rejected tokens:", error);
+    res.status(500).json({ success: false, message: "Error fetching wait/rejected tokens" });
+  }
+};
+
+export const getActiveTokens = async (req, res) => {
+  try {
+    const { branchId, serviceId } = req.query;
+    if (!branchId) {
+      return res.status(400).json({ success: false, message: "branchId is required" });
+    }
+
+    const query = { 
+      branchId, 
+      status: "Called" 
+    };
+    if (serviceId) query.serviceId = serviceId;
+
+    const tokens = await Token.find(query)
+      .select("tokenNumber fullName status serviceId counterId startedAt branchId")
+      .lean();
+
+    res.status(200).json({ success: true, count: tokens.length, tokens });
+  } catch (error) {
+    console.error("Error fetching active tokens:", error);
+    res.status(500).json({ success: false, message: "Error fetching active tokens" });
   }
 };

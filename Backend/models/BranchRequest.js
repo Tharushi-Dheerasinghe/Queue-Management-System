@@ -4,9 +4,9 @@ const branchRequestSchema = new mongoose.Schema(
   {
     tenantType: {
       type: String,
-      enum: ["police", "bank", "supermarket", "hospital"],
       required: true,
       trim: true,
+      lowercase: true,
     },
 
     organizationId: {
@@ -138,7 +138,7 @@ const branchRequestSchema = new mongoose.Schema(
 );
 
 branchRequestSchema.path("organizationId").required(function () {
-  return ["police", "bank", "supermarket", "hospital"].includes(this.tenantType);
+  return this.tenantType !== "police";
 });
 
 branchRequestSchema.path("divisionId").required(function () {

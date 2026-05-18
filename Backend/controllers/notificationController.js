@@ -1,5 +1,5 @@
 import Notification from "../models/Notification.js";
-
+import { sendTokenEmailNotification } from "../utils/emailService.js";
 // Notification එකක් create කරන පොදු function එක
 export const createNotification = async ({ tenantType, tokenNumber, title, message, type, module, userId }) => {
   try {
@@ -14,6 +14,11 @@ export const createNotification = async ({ tenantType, tokenNumber, title, messa
     });
     await newNotification.save();
     console.log(`Notification created for ${tokenNumber} (user: ${userId})`);
+
+    // Send email notification
+    if (userId) {
+      await sendTokenEmailNotification(userId, tokenNumber, title, message);
+    }
   } catch (error) {
     console.error("Error creating notification:", error.message);
   }

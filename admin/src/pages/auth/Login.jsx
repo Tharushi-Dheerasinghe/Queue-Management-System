@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getDefaultDashboardPath } from "../../utils/permissions";
 import { loginUser } from "../../services/authService";
+import { Eye, EyeOff } from "lucide-react";
 
 const LOGIN_TYPES = {
   DEFAULT: "default",
@@ -98,37 +99,30 @@ const LOGIN_CONFIG = {
   [LOGIN_TYPES.POLICE_SUPER_ADMIN]: {
     title: "Police Super Admin Login",
     subtitle: "Manage police departments and branches",
-    subtitle2: "Demo: policeadmin@gmail.com / 123456",
   },
   [LOGIN_TYPES.HOSPITAL_SUPER_ADMIN]: {
     title: "Hospital Super Admin Login",
     subtitle: "Manage hospitals and healthcare services",
-    subtitle2: "Demo: hospitaladmin@gmail.com / 123456",
   },
   [LOGIN_TYPES.COMPANY_SUPER_ADMIN]: {
     title: "Company Super Admin Login",
     subtitle: "Manage companies and organizations",
-    subtitle2: "Demo: companyadmin@gmail.com / 123456",
   },
   [LOGIN_TYPES.ORGANIZATION_ADMIN]: {
     title: "Organization Admin Login",
     subtitle: "Shared organization admin access for all tenants",
-    subtitle2: "Use organization admin credentials",
   },
   [LOGIN_TYPES.BRANCH_ADMIN]: {
     title: "Branch Admin Login",
     subtitle: "Shared branch admin access for all tenants",
-    subtitle2: "Use branch admin credentials",
   },
   [LOGIN_TYPES.STAFF]: {
     title: "Staff Login",
     subtitle: "Shared staff access for all tenants",
-    subtitle2: "Use staff credentials",
   },
   [LOGIN_TYPES.DEFAULT]: {
     title: "Admin Login",
     subtitle: "Select admin type or use general login",
-    subtitle2: "Demo: companyadmin@gmail.com / 123456",
   },
 };
 
@@ -147,7 +141,6 @@ export default function Login({ loginType = LOGIN_TYPES.DEFAULT }) {
   const navigate = useNavigate();
   const { role, login } = useAuth();
   const [error, setError] = useState("");
-  const [showDemoUsers, setShowDemoUsers] = useState(false);
 
   const allowedRoles = useMemo(
     () => ALLOWED_ROLES_BY_LOGIN_TYPE[loginType] || ALLOWED_ROLES_BY_LOGIN_TYPE[LOGIN_TYPES.DEFAULT],
@@ -170,6 +163,7 @@ export default function Login({ loginType = LOGIN_TYPES.DEFAULT }) {
     email: "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   // Redirect if already logged in (and on login page)
   useEffect(() => {
@@ -184,12 +178,7 @@ export default function Login({ loginType = LOGIN_TYPES.DEFAULT }) {
     setError("");
   }, [location.pathname]);
 
-  // Log available demo users on mount
-  useEffect(() => {
-    console.log("=== DUMMY LOGIN USERS ===");
-    console.log(filteredUsers);
-    console.log("========================");
-  }, [filteredUsers]);
+
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -243,10 +232,7 @@ export default function Login({ loginType = LOGIN_TYPES.DEFAULT }) {
     }
   };
 
-  const handleDemoClick = (email) => {
-    setForm({ email, password: "123456" });
-    setError("");
-  };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 px-4">
@@ -254,7 +240,6 @@ export default function Login({ loginType = LOGIN_TYPES.DEFAULT }) {
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">Admin Access</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{pageConfig.title}</h1>
         <p className="mt-2 text-sm text-slate-500">{pageConfig.subtitle}</p>
-        <p className="mt-1 text-xs text-slate-400">{pageConfig.subtitle2}</p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <div>
@@ -277,16 +262,25 @@ export default function Login({ loginType = LOGIN_TYPES.DEFAULT }) {
             <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              required
-              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-sky-100"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={form.password}
+                onChange={handleChange}
+                required
+                className="w-full rounded-xl border border-slate-300 pl-4 pr-12 py-2.5 text-sm text-slate-900 outline-none focus:ring-4 focus:ring-sky-100"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -303,32 +297,7 @@ export default function Login({ loginType = LOGIN_TYPES.DEFAULT }) {
           </button>
         </form>
 
-        {/* Quick Demo Users */}
-        <div className="mt-6 border-t border-slate-200 pt-6">
-          <button
-            type="button"
-            onClick={() => setShowDemoUsers(!showDemoUsers)}
-            className="text-xs font-semibold text-slate-600 hover:text-slate-900"
-          >
-            {showDemoUsers ? "Hide" : "Show"} Demo Users
-          </button>
 
-          {showDemoUsers && (
-            <div className="mt-3 space-y-2">
-              {Object.entries(filteredUsers).map(([email, user]) => (
-                <button
-                  key={email}
-                  type="button"
-                  onClick={() => handleDemoClick(email)}
-                  className="block w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs hover:bg-slate-100"
-                >
-                  <p className="font-medium text-slate-900">{email}</p>
-                  <p className="text-slate-500">{user.role}</p>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

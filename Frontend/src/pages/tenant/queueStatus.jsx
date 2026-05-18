@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { io } from "socket.io-client";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import Button from "../../components/common/Button";
 import { statusConfig } from "../../data/dummyData";
 import {
   clearQueueToken,
-  getStoredTokenNumber,
   trackQueueTokenByNumber,
   cancelQueueToken,
 } from "../../services/queueService";
+import { useTranslation } from "react-i18next";
 
 const STATUS_TEXT = {
   Waiting: "Your token is in the waiting queue. Please stay alert for your turn.",
@@ -23,6 +24,7 @@ const statusColorClasses = {
 };
 
 export default function QueueStatus() {
+  const { t } = useTranslation();
   const { tenantType, tenant } = useOutletContext();
   const { tokenId } = useParams();
   const navigate = useNavigate();
@@ -32,56 +34,75 @@ export default function QueueStatus() {
   const theme = tenant?.theme;
   const [isCancelling, setIsCancelling] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadTrackedTokenCallback = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      const urlTokenNumber = tokenId ? String(tokenId) : null;
+      let tokenNumberToFetch = urlTokenNumber;
 
-    const loadTrackedToken = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        // If tokenId is provided in the URL, prefer it (tokenId represents tokenNumber)
-        const urlTokenNumber = tokenId ? String(tokenId) : null;
+      if (!tokenNumberToFetch) {
+        tokenNumberToFetch = getStoredTokenNumber(tenantType);
+      }
 
-        if (urlTokenNumber) {
-          const trackedToken = await trackQueueTokenByNumber(urlTokenNumber);
-          if (!isMounted) return;
-          setTokenData(trackedToken || null);
-          return;
-        }
-
-        // Fallback to stored token number when URL param is not provided
-        const tokenNumber = getStoredTokenNumber(tenantType);
-        if (!tokenNumber) {
-          if (isMounted) setTokenData(null);
-          return;
-        }
-
-        const trackedToken = await trackQueueTokenByNumber(tokenNumber);
-        if (!isMounted) {
-          return;
-        }
-
-        setTokenData(trackedToken || null);
-      } catch (err) {
-        if (!isMounted) {
-          return;
-        }
-
-        setError(err?.response?.data?.message || err?.message || "Failed to load queue status");
+      if (!tokenNumberToFetch) {
         setTokenData(null);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+        setLoading(false);
+        return;
+      }
+
+      const trackedToken = await trackQueueTokenByNumber(tokenNumberToFetch);
+      setTokenData(trackedToken || null);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Failed to load queue status");
+      setTokenData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [tokenId, tenantType]);
+
+  useEffect(() => {
+    loadTrackedTokenCallback();
+
+    // Request notification permission
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+      Notification.requestPermission();
+    }
+  }, [loadTrackedTokenCallback]);
+
+  // Setup Socket.io connection
+  useEffect(() => {
+    if (!tokenData?.branchId) return;
+
+    const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    const socket = io(SOCKET_URL);
+
+    socket.on("connect", () => {
+      console.log("Connected to live queue updates");
+      socket.emit("joinBranch", tokenData.branchId);
+    });
+
+    socket.on("queueUpdated", (data) => {
+      console.log("Queue updated via live socket", data);
+      
+      // If the called token matches the user's token, show a notification
+      if (data?.token && data.token.id === tokenData?.id && data.token.status === "Called") {
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("It's Your Turn!", {
+            body: `Token ${data.token.sequenceNumber || data.token.tokenNumber} is now being served.`,
+            icon: "/favicon.ico" // You can change this to a proper app icon
+          });
         }
       }
-    };
 
-    loadTrackedToken();
+      loadTrackedTokenCallback();
+    });
 
     return () => {
-      isMounted = false;
+      socket.disconnect();
     };
-  }, [tenantType]);
+  }, [tokenData?.branchId, loadTrackedTokenCallback]);
 
   const status = tokenData?.status || "Waiting";
   const statusMeta = statusConfig[status] || statusConfig.Waiting;
@@ -161,38 +182,39 @@ export default function QueueStatus() {
       <div className={`rounded-3xl bg-gradient-to-r p-6 text-white shadow-md sm:p-8 ${theme?.gradient || "from-blue-700 to-sky-500"}`}>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
           Queue Status
+          {t("Queue Status")}
         </h1>
         <p className="mt-2 text-sm text-white/90 sm:text-base">
-          View your current token and live queue information.
+          {t("View your current token and live queue information.")}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">Step 4 of 4</span>
-          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">Status: {status}</span>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">{t("Step 4 of 4")}</span>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">{t("Status")}: {t(status)}</span>
         </div>
       </div>
 
       <div className={`rounded-3xl bg-gradient-to-r p-8 text-white shadow-lg ${theme?.gradient || "from-blue-700 to-sky-500"}`}>
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-white/90">
-          Live Queue
+          {t("Live Queue")}
         </p>
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
           <div>
-            <p className="text-sm text-white/90">Your Token</p>
+            <p className="text-sm text-white/90">{t("Your Token")}</p>
             <h2 className="mt-2 text-2xl font-bold">{tokenData.tokenNumber}</h2>
           </div>
 
           <div>
-            <p className="text-sm text-white/90">Current Token</p>
+            <p className="text-sm text-white/90">{t("Current Token")}</p>
             <h2 className="mt-2 text-2xl font-bold">{tokenData.currentToken}</h2>
           </div>
 
           <div>
-            <p className="text-sm text-white/90">People Ahead</p>
+            <p className="text-sm text-white/90">{t("People Ahead")}</p>
             <h2 className="mt-2 text-2xl font-bold">{tokenData.peopleAhead}</h2>
           </div>
 
           <div>
-            <p className="text-sm text-white/90">Estimated Wait</p>
+            <p className="text-sm text-white/90">{t("Estimated Wait")}</p>
             <h2 className="mt-2 text-2xl font-bold">{tokenData.estimatedWait}</h2>
           </div>
         </div>
@@ -200,32 +222,32 @@ export default function QueueStatus() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className={`rounded-3xl border bg-white p-6 shadow-sm ${theme?.border || "border-slate-200"}`}>
-          <h3 className="text-lg font-semibold text-slate-900">Booking Details</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{t("Booking Details")}</h3>
           <p className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-medium ${theme?.light || "bg-blue-50"} ${theme?.text || "text-blue-700"}`}>
-            Tenant Booking
+            {t("Tenant Booking")}
           </p>
           <div className="mt-4 space-y-3 text-sm text-slate-600">
-            <p><span className="font-medium text-slate-900">Name:</span> {tokenData.fullName}</p>
-            <p><span className="font-medium text-slate-900">Mobile:</span> {tokenData.mobile}</p>
-            <p><span className="font-medium text-slate-900">Branch:</span> {tokenData.branch}</p>
-            <p><span className="font-medium text-slate-900">Service:</span> {tokenData.service}</p>
+            <p><span className="font-medium text-slate-900">{t("Name")}:</span> {tokenData.fullName}</p>
+            <p><span className="font-medium text-slate-900">{t("Mobile")}:</span> {tokenData.mobile}</p>
+            <p><span className="font-medium text-slate-900">{t("Branch")}:</span> {tokenData.branch}</p>
+            <p><span className="font-medium text-slate-900">{t("Service")}:</span> {tokenData.service}</p>
             {tokenData.note ? (
-              <p><span className="font-medium text-slate-900">Note:</span> {tokenData.note}</p>
+              <p><span className="font-medium text-slate-900">{t("Note")}:</span> {tokenData.note}</p>
             ) : null}
           </div>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Current Status</h3>
+          <h3 className="text-lg font-semibold text-slate-900">{t("Current Status")}</h3>
           <p
             className={`mt-3 inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${
               theme?.border || statusBorderClass
             } ${theme?.soft || statusBgClass} ${theme?.text || statusTextClass}`}
           >
-            {statusMeta.label}
+            {t(statusMeta.label)}
           </p>
           <p className="mt-4 text-sm leading-6 text-slate-500">
-            {STATUS_TEXT[status] || STATUS_TEXT.Waiting}
+            {t(STATUS_TEXT[status] || STATUS_TEXT.Waiting)}
           </p>
 
           <Button
@@ -233,7 +255,7 @@ export default function QueueStatus() {
             theme={theme}
             className="mt-6 w-full"
           >
-            Book Another Token
+            {t("Book Another Token")}
           </Button>
 
           <Button
@@ -242,7 +264,7 @@ export default function QueueStatus() {
             className="mt-3 w-full"
             disabled={isCancelling}
           >
-            {isCancelling ? "Cancelling..." : "Cancel Token"}
+            {isCancelling ? t("Cancelling...") : t("Cancel Token")}
           </Button>
         </div>
       </div>

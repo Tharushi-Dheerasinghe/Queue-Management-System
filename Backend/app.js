@@ -14,6 +14,7 @@ import counterRouter from "./routes/counterRoutes.js";
 import workSessionRouter from "./routes/workSessionRoutes.js";
 import userQueueRouter from "./routes/userQueueRoutes.js";
 import notificationRouter from "./routes/notificationRoutes.js";
+import chatRouter from "./routes/chatRoutes.js";
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use("/api/customer", userQueueRouter);
 // Deprecated alias kept during migration.
 app.use("/api/user", userQueueRouter);
 app.use("/api/notifications", notificationRouter);
+app.use("/api/chat", chatRouter);
 // test route
 app.get("/", (req, res) => {
   res.send("API Running...");

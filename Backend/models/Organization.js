@@ -38,7 +38,6 @@ const organizationSchema = new mongoose.Schema(
   {
     tenantType: {
       type: String,
-      enum: ORGANIZATION_TENANT_TYPES,
       required: true,
       trim: true,
       lowercase: true,
@@ -118,6 +117,19 @@ const organizationSchema = new mongoose.Schema(
     queueSettings: {
       type: queueSettingsSchema,
       default: () => ({}),
+    },
+
+    branding: {
+      type: {
+        logoUrl: { type: String, default: "" },
+        primaryColor: { type: String, default: "#2563eb" },
+        welcomeText: { type: String, default: "" }
+      },
+      default: () => ({
+        logoUrl: "",
+        primaryColor: "#2563eb",
+        welcomeText: ""
+      })
     },
 
     status: {

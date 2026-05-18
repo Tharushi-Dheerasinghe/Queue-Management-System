@@ -4,9 +4,9 @@ const counterSchema = new mongoose.Schema(
   {
     tenantType: {
       type: String,
-      enum: ["police", "bank", "supermarket", "hospital", "company"],
       required: true,
       trim: true,
+      lowercase: true,
       index: true,
     },
 
