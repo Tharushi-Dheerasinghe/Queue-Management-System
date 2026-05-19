@@ -40,7 +40,7 @@ export default function ChatbotWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {isOpen && (
-        <div className="mb-4 w-80 sm:w-96 overflow-hidden rounded-2xl bg-white/90 backdrop-blur-md shadow-2xl border border-white/20 transition-all transform origin-bottom-right duration-300">
+        <div className="mb-4 w-80 sm:w-96 overflow-hidden rounded-2xl bg-white/90 dark:bg-slate-800/95 backdrop-blur-md shadow-2xl border border-white/20 dark:border-slate-700/50 transition-all transform origin-bottom-right duration-300">
           <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-4 text-white flex justify-between items-center rounded-t-2xl shadow-sm">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg">🤖</div>
@@ -57,14 +57,14 @@ export default function ChatbotWidget() {
             </button>
           </div>
 
-          <div className="h-80 overflow-y-auto p-4 space-y-3 bg-slate-50/50 scrollbar-thin scrollbar-thumb-slate-200">
+          <div className="h-80 overflow-y-auto p-4 space-y-3 bg-slate-50/50 dark:bg-slate-900/50 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                 <div 
                   className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
                     msg.sender === "user" 
                       ? "bg-sky-500 text-white rounded-tr-sm" 
-                      : "bg-white border text-slate-700 rounded-tl-sm"
+                      : "bg-white dark:bg-slate-700 border dark:border-slate-600 text-slate-700 dark:text-slate-100 rounded-tl-sm"
                   }`}
                   style={{ wordBreak: 'break-word' }}
                 >
@@ -84,13 +84,13 @@ export default function ChatbotWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSend} className="p-3 bg-white border-t flex gap-2">
+          <form onSubmit={handleSend} className="p-3 bg-white dark:bg-slate-800 border-t dark:border-slate-700 flex gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask anything..."
-              className="flex-1 rounded-full bg-slate-100 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500 transition"
+              className="flex-1 rounded-full bg-slate-100 dark:bg-slate-700 px-4 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 outline-none focus:ring-2 focus:ring-sky-500 transition"
             />
             <button 
               type="submit" 
