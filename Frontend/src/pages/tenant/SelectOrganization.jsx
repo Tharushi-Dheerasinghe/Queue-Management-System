@@ -72,7 +72,7 @@ export default function SelectOrganization() {
     return () => {
       isMounted = false;
     };
-  }, [tenantType, tenant?.organizations]);
+  }, [tenantType]);
 
   if (!tenant) {
     return <Navigate to="/" replace />;
