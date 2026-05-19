@@ -313,7 +313,7 @@ export default function Organizations() {
                        <div className="mb-4">
                           <p className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-1">🔗 Admin Portal URL</p>
                           <code className="block w-full bg-white border border-blue-200 p-2 rounded text-xs text-slate-800 break-all select-all">
-                            http://localhost:5174/admin-login
+                            {window.location.origin}/admin-login
                           </code>
                        </div>
                        <div className="grid grid-cols-2 gap-4">
@@ -332,9 +332,12 @@ export default function Organizations() {
                   <div className="space-y-6">
                     {selectedLinksData.results.map((res, i) => {
                       const actualTenantType = selectedLinksData.tenantType;
-                      const tvLink = `http://localhost:5173/${actualTenantType}/display/${res.branch.id}`;
-                      const kioskLink = `http://localhost:5174/staff-login`;
-                      const iotWebhook = `http://localhost:5000/api/tokens/iot/complete-and-next`;
+                      const customerAppUrl = import.meta.env.VITE_CUSTOMER_URL || "http://localhost:5173";
+                      const backendUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+                      
+                      const tvLink = `${customerAppUrl}/${actualTenantType}/display/${res.branch.id}`;
+                      const kioskLink = `${window.location.origin}/staff-login`;
+                      const iotWebhook = `${backendUrl}/api/tokens/iot/complete-and-next`;
                       
                       return (
                         <div key={i} className="p-6 border border-emerald-200 bg-emerald-50 rounded-2xl relative overflow-hidden">

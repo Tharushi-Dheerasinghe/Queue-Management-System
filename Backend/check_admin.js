@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = "mongodb+srv://tsadun141:Nisindu12345@cluster0.chm1abj.mongodb.net/queuemanagementsystem";
+const MONGODB_URI = "mongodb+srv://tharushiuthpala780_db_user:8cW87GsEXx4SpNNW@cluster0.zacymyc.mongodb.net/Queue_Management?retryWrites=true&w=majority";
 
 async function run() {
   await mongoose.connect(MONGODB_URI);
