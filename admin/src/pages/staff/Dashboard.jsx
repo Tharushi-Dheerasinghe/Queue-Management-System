@@ -289,11 +289,11 @@ export default function StaffDashboard() {
           </div>
           <div className="h-8 w-px bg-slate-500/30"></div>
           <div className="flex items-center gap-3">
-            <span className={`text-xs font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Active Unit:</span>
+            <span className={`text-sm font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Active Unit:</span>
             <select 
               value={activeUnitId} 
               onChange={(e) => setActiveUnitId(e.target.value)} 
-              className={`rounded-xl px-4 py-2 font-bold text-lg outline-none cursor-pointer border transition ${isDarkMode ? 'bg-slate-900 border-blue-600/50 text-blue-400 focus:border-blue-500' : 'bg-slate-50 border-blue-300 text-blue-700 focus:border-blue-400'}`}
+              className={`rounded-xl px-6 py-3 font-bold text-base md:text-lg outline-none cursor-pointer border transition min-w-fit ${isDarkMode ? 'bg-slate-900 border-blue-500 text-blue-300 focus:border-blue-400' : 'bg-slate-50 border-blue-400 text-blue-800 focus:border-blue-500'}`}
             >
               {services.map(s => <option key={s.id} value={s.id}>{s.serviceName}</option>)}
             </select>
@@ -358,7 +358,7 @@ export default function StaffDashboard() {
         </div>
 
         {/* Center: Main Display & Controls for Active Unit */}
-        <div className={`col-span-1 lg:col-span-3 flex flex-col rounded-3xl shadow-2xl border overflow-y-auto lg:overflow-hidden min-h-[350px] lg:min-h-0 relative ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-black/30' : 'bg-white border-slate-200'}`}>
+        <div className={`col-span-1 lg:col-span-3 flex flex-col rounded-3xl shadow-2xl border overflow-y-auto min-h-[400px] lg:min-h-96 relative ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-black/30' : 'bg-white border-slate-200'}`}>
           <div className={`absolute top-0 left-0 w-full h-3 shrink-0 ${isDarkMode ? 'bg-blue-600' : 'bg-blue-500'}`}></div>
           
           <div className="flex-1 flex flex-col items-center justify-center p-4 lg:p-6 text-center min-h-min">
