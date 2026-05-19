@@ -115,6 +115,13 @@ export const createCounter = async (req, res) => {
       createdBy: req.user.id,
     });
 
+    if (serviceId) {
+      await Service.findOneAndUpdate(
+        { _id: serviceId, $or: [{ defaultCounterId: null }, { defaultCounterId: { $exists: false } }] },
+        { defaultCounterId: counter._id }
+      );
+    }
+
     return res.status(201).json({
       success: true,
       message: "Counter created successfully",

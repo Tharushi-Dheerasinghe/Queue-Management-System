@@ -67,6 +67,13 @@ const serviceSchema = new mongoose.Schema(
       trim: true,
     },
 
+    defaultCounterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Counter",
+      default: null,
+      index: true,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

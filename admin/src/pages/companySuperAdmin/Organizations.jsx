@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getBranchesByTenant, getOrganizationsByTenant, getSystemLinks } from "../../services/tenantService";
 import api from "../../services/api";
+import Esp32UnitSetupBlock from "../../components/Esp32UnitSetupBlock";
 
 const formatStatusLabel = (status) => status.charAt(0).toUpperCase() + status.slice(1);
 
@@ -327,7 +328,6 @@ export default function Organizations() {
                       
                       const tvLink = `${customerAppUrl}/${actualTenantType}/display/${res.branch.id}`;
                       const kioskLink = `${window.location.origin}/staff-login`;
-                      const iotWebhook = `${backendUrl}/api/tokens/iot/complete-and-next`;
                       
                       return (
                         <div key={i} className="p-6 border border-emerald-200 bg-emerald-50 rounded-2xl relative overflow-hidden">
@@ -351,16 +351,8 @@ export default function Organizations() {
                             </div>
       
                             <div>
-                              <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">🔌 ESP32 Button Webhooks (Per Unit)</p>
-                              {res.services && res.services.map((svc, sIdx) => (
-                                <div key={svc.id || sIdx} className="mb-3 pl-3 border-l-2 border-emerald-300">
-                                  <p className="text-xs font-bold text-slate-700">{svc.serviceName} Unit</p>
-                                  <code className="block w-full bg-white border border-emerald-200 p-2 mt-1 rounded text-xs text-slate-800 break-all select-all">
-                                    POST {iotWebhook}
-                                  </code>
-                                  <p className="text-[10px] text-emerald-600 mt-1">Payload: {`{"counterId": "${svc.counterId || 'unknown'}"}`}</p>
-                                </div>
-                              ))}
+                              <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">🔌 ESP32 Unit Setup (per unit)</p>
+                              <Esp32UnitSetupBlock services={res.services || []} backendUrl={backendUrl} />
                             </div>
       
                             {res.staffCredentials && (

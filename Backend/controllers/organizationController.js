@@ -13,6 +13,11 @@ import {
 } from "../utils/scopeHelpers.js";
 import { errorResponse, successResponse } from "../utils/responseHelpers.js";
 import { isValidObjectId, requireFields } from "../utils/validationHelpers.js";
+import {
+  ensureDefaultCounterForService,
+  mapServiceWithIotLinks,
+  resolvePublicApiBase,
+} from "../utils/unitIotLinks.js";
 
 const ALLOWED_STATUS = new Set(["pending", "approved", "active", "inactive", "rejected"]);
 const ALLOWED_BRANCH_STATUS = new Set(["active", "inactive"]);
@@ -353,6 +358,7 @@ const createServicesForBranch = async ({
       { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
     );
 
+    await ensureDefaultCounterForService(savedService, mainBranch._id);
     createdServices.push(savedService);
   }
 
@@ -1028,15 +1034,26 @@ export const bulkCreateSystem = async (req, res) => {
             status: "active",
           };
           const [counter] = await Counter.create([counterPayload], { session });
+          await Service.findByIdAndUpdate(
+            service._id,
+            { defaultCounterId: counter._id },
+            { session }
+          );
           service.defaultCounterId = counter._id;
-          
+
           createdServices.push(service);
         }
       }
 
       results.push({
         branch: { id: branch._id, branchName: branch.branchName },
-        services: createdServices.map(s => ({ id: s._id, serviceName: s.serviceName, counterId: s.defaultCounterId })),
+        services: await Promise.all(
+          createdServices.map((s) => mapServiceWithIotLinks({
+            service: s,
+            branchId: branch._id,
+            apiBaseUrl: resolvePublicApiBase(req),
+          }))
+        ),
         staffCredentials
       });
     }
@@ -1109,7 +1126,8 @@ export const getSystemLinks = async (req, res) => {
     }
 
     const cleanOrgName = organization.organizationName.replace(/\s+/g, "").toLowerCase();
-    
+    const apiBaseUrl = resolvePublicApiBase(req);
+
     // Find organization admin
     const adminUser = await User.findOne({ organizationId: id, role: "organization_admin" });
     const adminCredentials = adminUser ? { 
@@ -1130,17 +1148,23 @@ export const getSystemLinks = async (req, res) => {
 
       const staffUser = await User.findOne({ branchId: branch._id, role: "staff" });
       
+      const servicesWithLinks = await Promise.all(
+        finalServices.map((service) =>
+          mapServiceWithIotLinks({
+            service,
+            branchId: branch._id,
+            apiBaseUrl,
+          })
+        )
+      );
+
       results.push({
         branch: { id: branch._id, branchName: branch.branchName },
-        services: finalServices.map(s => ({ 
-          id: s._id, 
-          serviceName: s.serviceName, 
-          counterId: s.defaultCounterId 
-        })),
-        staffCredentials: staffUser ? { 
-          email: staffUser.email, 
-          password: `${cleanBranchName}123` 
-        } : null
+        services: servicesWithLinks,
+        staffCredentials: staffUser ? {
+          email: staffUser.email,
+          password: `${cleanBranchName}123`,
+        } : null,
       });
     }
 
@@ -1148,8 +1172,9 @@ export const getSystemLinks = async (req, res) => {
       organizationId: organization._id,
       organizationName: organization.organizationName,
       tenantType: organization.tenantType,
+      apiBaseUrl: apiBaseUrl ? `${apiBaseUrl}/api` : "",
       adminCredentials,
-      results
+      results,
     });
   } catch (error) {
     console.error("getSystemLinks error:", error);

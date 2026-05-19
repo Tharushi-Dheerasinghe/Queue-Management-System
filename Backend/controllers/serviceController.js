@@ -10,6 +10,7 @@ import {
   normalizeTenantType,
 } from "../utils/scopeHelpers.js";
 import { errorResponse, successResponse } from "../utils/responseHelpers.js";
+import { ensureDefaultCounterForService } from "../utils/unitIotLinks.js";
 import { isValidObjectId, requireFields } from "../utils/validationHelpers.js";
 import mongoose from "mongoose";
 import Token from "../models/Token.js";
@@ -171,11 +172,14 @@ export const createService = async (req, res) => {
       $addToSet: { services: service._id }
     });
 
+    const counter = await ensureDefaultCounterForService(service, branch._id);
+
     return successResponse(res, 201, "Service linked to branch successfully", {
       service: {
         id: service._id,
         serviceName: service.serviceName,
-        linkedToBranch: branchId
+        linkedToBranch: branchId,
+        counterId: counter?._id || service.defaultCounterId || null,
       }
     });
 

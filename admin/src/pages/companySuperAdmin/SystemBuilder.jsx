@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { bulkCreateSystem } from "../../services/tenantService";
+import Esp32UnitSetupBlock from "../../components/Esp32UnitSetupBlock";
 
 export default function SystemBuilder() {
   const navigate = useNavigate();
@@ -451,7 +452,6 @@ export default function SystemBuilder() {
                 
                 const tvLink = `${customerAppUrl}/${actualTenantType}/display/${res.branch.id}`;
                 const kioskLink = `${window.location.origin}/staff-login`; // Staff login needed
-                const iotWebhook = `${backendUrl}/api/tokens/iot/complete-and-next`;
                 
                 return (
                   <div key={i} className="p-6 border border-emerald-200 bg-emerald-50 rounded-2xl relative overflow-hidden">
@@ -475,16 +475,8 @@ export default function SystemBuilder() {
                       </div>
 
                       <div>
-                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">🔌 ESP32 Button Webhooks (Per Unit)</p>
-                        {res.services && res.services.map((svc, sIdx) => (
-                          <div key={svc.id || sIdx} className="mb-3 pl-3 border-l-2 border-emerald-300">
-                            <p className="text-xs font-bold text-slate-700">{svc.serviceName} Unit</p>
-                            <code className="block w-full bg-white border border-emerald-200 p-2 mt-1 rounded text-xs text-slate-800 break-all select-all">
-                              POST {iotWebhook}
-                            </code>
-                            <p className="text-[10px] text-emerald-600 mt-1">Payload: {`{"counterId": "${svc.counterId || 'unknown'}"}`}</p>
-                          </div>
-                        ))}
+                        <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">🔌 ESP32 Unit Setup (per unit)</p>
+                        <Esp32UnitSetupBlock services={res.services || []} backendUrl={backendUrl} />
                       </div>
 
                       {res.staffCredentials && (

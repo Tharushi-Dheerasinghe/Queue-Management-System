@@ -962,7 +962,7 @@ export const getIotQueueStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid or missing Counter ID" });
     }
 
-    const counter = await Counter.findById(counterId);
+    const counter = await Counter.findById(counterId).populate("serviceId", "serviceName").lean();
     if (!counter) {
       return res.status(404).json({ success: false, message: "Counter not found" });
     }
@@ -978,11 +978,13 @@ export const getIotQueueStatus = async (req, res) => {
       status: "Called"
     });
 
-    return res.status(200).json({ 
-      success: true, 
-      remainingCount, 
+    return res.status(200).json({
+      success: true,
+      remainingCount,
       hasActiveToken: !!activeToken,
-      activeTokenNumber: activeToken ? activeToken.tokenNumber : null
+      activeTokenNumber: activeToken ? activeToken.tokenNumber : null,
+      counterName: counter.counterName || "",
+      serviceName: counter.serviceId?.serviceName || "",
     });
   } catch (error) {
     console.error("getIotQueueStatus error:", error);

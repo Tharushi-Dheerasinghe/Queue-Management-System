@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Organization from "../models/Organization.js";
 import Branch from "../models/Branch.js";
+import { ensureDefaultCounterForService } from "../utils/unitIotLinks.js";
 import Service from "../models/Service.js";
 
 /**
@@ -264,12 +265,15 @@ export const addOrganizationBranchService = async (req, res) => {
       $addToSet: { services: service._id },
     });
 
+    const counter = await ensureDefaultCounterForService(service, branch._id);
+
     return res.status(isNewService ? 201 : 200).json({
       success: true,
       message: isNewService ? "Service created and linked successfully" : "Existing service linked to this branch",
       service: {
         id: service._id,
         serviceName: service.serviceName,
+        counterId: counter?._id || service.defaultCounterId || null,
       },
     });
 
