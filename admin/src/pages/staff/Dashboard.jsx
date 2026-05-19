@@ -358,13 +358,13 @@ export default function StaffDashboard() {
         </div>
 
         {/* Center: Main Display & Controls for Active Unit */}
-        <div className={`col-span-1 lg:col-span-3 flex flex-col rounded-3xl shadow-2xl border overflow-hidden min-h-[350px] lg:min-h-0 relative ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-black/30' : 'bg-white border-slate-200'}`}>
-          <div className={`absolute top-0 left-0 w-full h-3 ${isDarkMode ? 'bg-blue-600' : 'bg-blue-500'}`}></div>
+        <div className={`col-span-1 lg:col-span-3 flex flex-col rounded-3xl shadow-2xl border overflow-y-auto lg:overflow-hidden min-h-[350px] lg:min-h-0 relative ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-black/30' : 'bg-white border-slate-200'}`}>
+          <div className={`absolute top-0 left-0 w-full h-3 shrink-0 ${isDarkMode ? 'bg-blue-600' : 'bg-blue-500'}`}></div>
           
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 lg:p-6 text-center min-h-min">
             <h2 className={`text-xl font-black uppercase tracking-[0.3em] mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-400'}`}>Serving Now: {services.find(s=>s.id===activeUnitId)?.serviceName || ""}</h2>
             
-            <div className={`text-7xl md:text-9xl font-black tracking-tighter my-2 leading-none ${isDarkMode ? 'text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]' : 'text-blue-700'}`}>
+            <div className={`text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tighter my-2 lg:my-4 leading-none ${isDarkMode ? 'text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]' : 'text-blue-700'}`}>
               {activeToken?.tokenNumber || "--"}
             </div>
             
@@ -380,7 +380,7 @@ export default function StaffDashboard() {
           </div>
           
           {/* Action Buttons */}
-          <div className={`grid grid-cols-3 gap-4 p-6 border-t ${isDarkMode ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+          <div className={`grid grid-cols-3 gap-3 lg:gap-4 p-4 lg:p-6 border-t shrink-0 ${isDarkMode ? 'bg-slate-900/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
             {activeToken ? (
               <>
                 <button onClick={handleWaitToken} disabled={actionLoading} className={`col-span-1 py-4 rounded-2xl font-black text-xl uppercase tracking-widest transition active:scale-95 shadow-xl border-2 ${isDarkMode ? 'bg-slate-800 border-amber-500 text-amber-400 hover:bg-amber-500 hover:text-slate-900' : 'bg-white border-amber-400 text-amber-600 hover:bg-amber-50'}`}>
@@ -394,7 +394,7 @@ export default function StaffDashboard() {
                 </button>
               </>
             ) : (
-              <button onClick={handleProcessToken} disabled={actionLoading} className="col-span-3 py-4 rounded-2xl font-black text-2xl uppercase tracking-widest transition active:scale-95 shadow-2xl bg-blue-600 hover:bg-blue-500 text-white border-2 border-blue-500 shadow-blue-900/30">
+              <button onClick={handleProcessToken} disabled={actionLoading} className="col-span-3 py-3 lg:py-4 rounded-2xl font-black text-xl lg:text-2xl uppercase tracking-widest transition active:scale-95 shadow-2xl bg-blue-600 hover:bg-blue-500 text-white border-2 border-blue-500 shadow-blue-900/30">
                 Call Next Customer
               </button>
             )}
