@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import axios from "axios";
+import api from "../../services/api";
 
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,7 +28,7 @@ export default function ChatbotWidget() {
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/chat", { message: userMessage });
+      const response = await api.post("/chat", { message: userMessage });
       setMessages((prev) => [...prev, { sender: "bot", text: response.data.reply }]);
     } catch (error) {
       setMessages((prev) => [...prev, { sender: "bot", text: "Sorry, I am having trouble connecting to the server right now." }]);
