@@ -332,7 +332,7 @@ export default function Organizations() {
                   <div className="space-y-6">
                     {selectedLinksData.results.map((res, i) => {
                       const actualTenantType = selectedLinksData.tenantType;
-                      const customerAppUrl = import.meta.env.VITE_CUSTOMER_URL || "http://localhost:5173";
+                      const customerAppUrl = import.meta.env.VITE_CUSTOMER_URL || "https://queue-management-system-teal.vercel.app";
                       const backendUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
                       
                       const tvLink = `${customerAppUrl}/${actualTenantType}/display/${res.branch.id}`;

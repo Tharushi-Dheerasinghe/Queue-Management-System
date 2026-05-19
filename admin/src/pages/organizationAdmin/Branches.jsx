@@ -147,7 +147,7 @@ export default function SharedOrganizationAdminBranches() {
                     <td className="px-4 py-3 text-slate-600">{branch.contactNumber || "—"}</td>
                     <td className="px-4 py-3 text-right space-x-2">
                       <a
-                        href={`${import.meta.env.VITE_CUSTOMER_URL || "http://localhost:5173"}/${tenantType}/display/${branch.id}`}
+                        href={`${import.meta.env.VITE_CUSTOMER_URL || "https://queue-management-system-teal.vercel.app"}/${tenantType}/display/${branch.id}`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center rounded-lg bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100"
