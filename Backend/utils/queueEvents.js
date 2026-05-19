@@ -4,13 +4,44 @@ import { getIo } from "./socket.js";
 
 export const getLivePeopleAhead = async (token) => {
   if (!token?.branchId || !token?.serviceId) return 0;
+  if (token.sequenceNumber == null) return 0;
 
-  return Token.countDocuments({
+  const query = {
     branchId: token.branchId,
     serviceId: token.serviceId,
     status: "Waiting",
     sequenceNumber: { $lt: token.sequenceNumber },
-  });
+  };
+
+  if (token.bookingDate) {
+    query.bookingDate = token.bookingDate;
+  }
+
+  return Token.countDocuments(query);
+};
+
+export const getWaitingPositionsForService = async (branchId, serviceId) => {
+  if (!branchId || !serviceId) return [];
+
+  const waiting = await Token.find({
+    branchId,
+    serviceId,
+    status: "Waiting",
+  })
+    .sort({ sequenceNumber: 1 })
+    .select("_id tokenNumber sequenceNumber bookingDate branchId serviceId")
+    .lean();
+
+  const positions = [];
+  for (const entry of waiting) {
+    const peopleAhead = await getLivePeopleAhead(entry);
+    positions.push({
+      tokenId: String(entry._id),
+      tokenNumber: entry.tokenNumber,
+      peopleAhead,
+    });
+  }
+  return positions;
 };
 
 export const getCounterDetails = async (counterId) => {
@@ -97,6 +128,12 @@ export const emitQueueUpdated = async (branchId, payload = {}) => {
     if (payload.token) event.token = serialized;
     if (payload.updatedToken) event.updatedToken = serialized;
     event.unitName = serialized.unitName;
+  }
+
+  const serviceId = payload.serviceId || tokenRef?.serviceId;
+  if (serviceId) {
+    event.waitingPositions = await getWaitingPositionsForService(branchId, serviceId);
+    event.serviceId = String(serviceId);
   }
 
   io.to(branchKey).emit("queueUpdated", event);

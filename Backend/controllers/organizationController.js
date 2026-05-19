@@ -497,8 +497,16 @@ const buildPatchPayload = (body = {}) => {
   if (body.approvedAt !== undefined) {
     updates.approvedAt = body.approvedAt || null;
   }
+  if (body.subscriptionExpiresAt !== undefined) {
+    updates.subscriptionExpiresAt = body.subscriptionExpiresAt || null;
+  }
 
   return updates;
+};
+
+const getEndOfCurrentMonth = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 };
 
 const getUserTenantType = (user = {}) => normalizeTenantType(user.tenantType);
@@ -743,11 +751,16 @@ export const getOrganizationsList = async (req, res) => {
 
 
 
+    const now = new Date();
     const organizations = await Organization.find({
       tenantType,
-      status: { $in: ["approved", "active"] },
+      status: "active",
+      $or: [
+        { subscriptionExpiresAt: null },
+        { subscriptionExpiresAt: { $gte: now } },
+      ],
     })
-      .select("_id organizationName divisionName branding")
+      .select("_id organizationName divisionName branding status subscriptionExpiresAt")
       .sort({ organizationName: 1 })
       .lean();
 
@@ -872,6 +885,15 @@ export const updateOrganization = async (req, res) => {
 
     if (updates.status && !ALLOWED_STATUS.has(updates.status)) {
       return errorResponse(res, 400, "Invalid status value");
+    }
+
+    if (updates.status === "active") {
+      updates.subscriptionExpiresAt = getEndOfCurrentMonth();
+      updates.approvedAt = organization.approvedAt || new Date();
+    }
+
+    if (updates.status === "inactive") {
+      updates.subscriptionExpiresAt = null;
     }
 
     if (updates.organizationCode) {

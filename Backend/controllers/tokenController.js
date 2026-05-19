@@ -2,7 +2,12 @@ import { createNotification } from "./notificationController.js";
 import mongoose from "mongoose";
 import Branch from "../models/Branch.js";
 import Service from "../models/Service.js";
+import Organization from "../models/Organization.js";
 import Token from "../models/Token.js";
+import {
+  validateCustomerDetails,
+  getFirstValidationError,
+} from "../utils/customerValidation.js";
 import WorkSession from "../models/WorkSession.js";
 import { buildTokenPrefix, formatSequenceNumber } from "../utils/generateToken.js";
 import { normalizeTenantType } from "../utils/scopeHelpers.js";
@@ -127,12 +132,31 @@ export const createToken = async (req, res) => {
 
     const finalBookingDate = bookingDate || new Date().toISOString().split("T")[0];
 
-    if (!branchId || !serviceId || !fullName || !mobile) {
+    if (!branchId || !serviceId) {
       return res.status(400).json({
         success: false,
-        message: "branchId, serviceId, fullName, and mobile are required.",
+        message: "branchId and serviceId are required.",
       });
     }
+
+    const isStaffUser = String(req.user?.role || "").toLowerCase() === "staff";
+    const customerValidation = validateCustomerDetails({
+      fullName,
+      mobile,
+      nic,
+      age,
+      requireName: !isStaffUser,
+    });
+
+    if (!customerValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: getFirstValidationError(customerValidation.errors),
+        errors: customerValidation.errors,
+      });
+    }
+
+    const validatedCustomer = customerValidation.values;
 
     if (!mongoose.Types.ObjectId.isValid(branchId) || !mongoose.Types.ObjectId.isValid(serviceId)) {
       return res.status(400).json({
@@ -236,6 +260,37 @@ export const createToken = async (req, res) => {
       });
     }
 
+    if (finalOrganizationId) {
+      const organizationRecord = await Organization.findById(finalOrganizationId)
+        .select("status subscriptionExpiresAt organizationName")
+        .lean();
+
+      if (!organizationRecord) {
+        return res.status(404).json({
+          success: false,
+          message: "Organization not found",
+        });
+      }
+
+      if (["inactive", "rejected", "pending"].includes(String(organizationRecord.status || "").toLowerCase())) {
+        return res.status(403).json({
+          success: false,
+          message: "This organization is not accepting bookings at the moment.",
+        });
+      }
+
+      const subscriptionExpiresAt = organizationRecord.subscriptionExpiresAt
+        ? new Date(organizationRecord.subscriptionExpiresAt)
+        : null;
+
+      if (subscriptionExpiresAt && subscriptionExpiresAt < new Date()) {
+        return res.status(403).json({
+          success: false,
+          message: "This organization's subscription has expired.",
+        });
+      }
+    }
+
     if (
       normalize(organization) &&
       finalOrganizationName &&
@@ -293,10 +348,10 @@ export const createToken = async (req, res) => {
         organization: finalOrganizationName,
         branch: finalBranchName,
         service: finalServiceName,
-        fullName: normalize(fullName),
-        mobile: normalize(mobile),
-        nic: normalize(nic),
-        age: Number(age),
+        fullName: validatedCustomer.fullName,
+        mobile: validatedCustomer.mobile,
+        nic: validatedCustomer.nic || "",
+        age: validatedCustomer.age,
         note: normalize(note),
         bookingDate: finalBookingDate,
         userId: userId || req.user?.id || null,
@@ -338,7 +393,8 @@ export const createToken = async (req, res) => {
       serviceId: String(createdToken.serviceId),
     });
 
-    return res.status(201).json({ success: true, token: createdToken });
+    const enrichedCreated = await enrichTokenForClient(createdToken);
+    return res.status(201).json({ success: true, token: enrichedCreated });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

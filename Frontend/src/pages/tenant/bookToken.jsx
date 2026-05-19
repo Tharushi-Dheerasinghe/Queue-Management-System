@@ -8,6 +8,8 @@ import PageHeader from "../../components/common/PageHeader";
 import { useTenant } from "../../context/TenantContext";
 import { clearQueueToken, createQueueToken } from "../../services/queueService";
 import { legacyStorageKeys, readValue, storageKeys } from "../../utils/storage";
+import { validateCustomerDetails } from "../../utils/customerValidation";
+import { formatMobileInput, mobileInputProps } from "../../utils/phoneInput";
 
 export default function BookToken() { // <-- මෙතනින් function එක පටන් ගන්න
   const { tenantType, theme, selectedBranch, selectedService, selectedDate } = useTenant();
@@ -40,27 +42,14 @@ export default function BookToken() { // <-- මෙතනින් function එ�
   const [showQr, setShowQr] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const topRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
 
     if (name === "mobile") {
-      // Ensure prefix '07' is preserved
-      let v = String(value || "");
-
-      // If user removed prefix, restore it preserving digits
-      if (!v.startsWith("07")) {
-        const digits = v.replace(/\D/g, "");
-        v = `07${digits}`;
-      }
-
-      // Keep only digits after prefix and limit to 8 digits
-      const after = v.slice(2).replace(/\D/g, "").slice(0, 8);
-      const next = `07${after}`;
-
-      // Enforce maximum total length of 10 (07 + 8 digits)
-      setFormData((prev) => ({ ...prev, mobile: next.slice(0, 10) }));
+      setFormData((prev) => ({ ...prev, mobile: formatMobileInput(value) }));
       return;
     }
 
@@ -77,19 +66,16 @@ export default function BookToken() { // <-- මෙතනින් function එ�
       return;
     }
 
-    // Validate mobile: must start with '07' and be exactly 10 chars (07 + 8 digits)
-    if (!formData.mobile || !String(formData.mobile).startsWith("07") || String(formData.mobile).length !== 10) {
-      setError("Please enter a valid phone number (e.g., 071 234 5678)");
-      return;
-    }
-
-    if (!formData.nic || !formData.age) {
-      setError("Please provide your NIC and Age.");
+    const validation = validateCustomerDetails(formData);
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setError(Object.values(validation.errors)[0] || "Please fix the highlighted fields.");
       return;
     }
 
     setIsSubmitting(true);
     setError("");
+    setFieldErrors({});
 
     try {
       const tokenData = await createQueueToken({
@@ -97,10 +83,10 @@ export default function BookToken() { // <-- මෙතනින් function එ�
         organization: selectedOrganization,
         branchId: selectedBranch.id,
         serviceId: selectedService.id,
-        fullName: formData.fullName,
-        mobile: formData.mobile,
-        nic: formData.nic,
-        age: Number(formData.age),
+        fullName: validation.values.fullName,
+        mobile: validation.values.mobile,
+        nic: validation.values.nic,
+        age: validation.values.age || undefined,
         note: formData.note,
         bookingDate: formData.bookingDate,
         // Optional userId for guests
@@ -140,8 +126,12 @@ export default function BookToken() { // <-- මෙතනින් function එ�
     });
     setGeneratedTokenData(null);
     setShowQr(false);
+    setFieldErrors({});
     clearQueueToken(tenantType);
   };
+
+  const inputErrorClass = (field) =>
+    fieldErrors[field] ? "border-red-400 focus:ring-red-100" : "border-slate-300";
 
   const qrValue = generatedTokenData
     ? JSON.stringify(
@@ -249,57 +239,59 @@ export default function BookToken() { // <-- මෙතනින් function එ�
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && <div className="mb-2 text-sm text-red-600 font-semibold">{error}</div>}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Full Name</label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Full Name *</label>
               <input
                 type="text"
                 name="fullName"
                 value={formData.fullName}
                 onChange={handleChange}
                 placeholder="Enter your full name"
-                className={`w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${theme?.ring || "focus:ring-blue-100"}`}
+                className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${inputErrorClass("fullName")} ${theme?.ring || "focus:ring-blue-100"}`}
                 required
               />
+              {fieldErrors.fullName ? <p className="mt-1 text-xs text-red-600">{fieldErrors.fullName}</p> : null}
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Mobile Number</label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Mobile Number *</label>
               <input
-                type="text"
+                {...mobileInputProps}
                 name="mobile"
                 value={formData.mobile}
                 onChange={handleChange}
-                placeholder="X XXX XXXX"
-                className={`w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${theme?.ring || "focus:ring-blue-100"}`}
+                placeholder="0770181369"
+                className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${inputErrorClass("mobile")} ${theme?.ring || "focus:ring-blue-100"}`}
                 required
               />
+              {fieldErrors.mobile ? <p className="mt-1 text-xs text-red-600">{fieldErrors.mobile}</p> : null}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">NIC</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700">NIC (Optional)</label>
                 <input
                   type="text"
                   name="nic"
                   value={formData.nic}
                   onChange={handleChange}
                   placeholder="ID Number"
-                  className={`w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${theme?.ring || "focus:ring-blue-100"}`}
-                  required
+                  className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${inputErrorClass("nic")} ${theme?.ring || "focus:ring-blue-100"}`}
                 />
+                {fieldErrors.nic ? <p className="mt-1 text-xs text-red-600">{fieldErrors.nic}</p> : null}
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Age</label>
+                <label className="mb-2 block text-sm font-medium text-slate-700">Age (Optional)</label>
                 <input
                   type="number"
                   name="age"
-                  min="0"
+                  min="1"
                   max="120"
                   value={formData.age}
                   onChange={handleChange}
                   placeholder="Age"
-                  className={`w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${theme?.ring || "focus:ring-blue-100"}`}
-                  required
+                  className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:ring-4 ${inputErrorClass("age")} ${theme?.ring || "focus:ring-blue-100"}`}
                 />
+                {fieldErrors.age ? <p className="mt-1 text-xs text-red-600">{fieldErrors.age}</p> : null}
               </div>
             </div>
 

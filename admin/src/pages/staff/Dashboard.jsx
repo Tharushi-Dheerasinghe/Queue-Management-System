@@ -13,6 +13,7 @@ import {
   getWaitRejectedList,
   getActiveTokens
 } from "../../services/staffService";
+import { validateCustomerDetails } from "../../utils/customerValidation";
 
 const formatElapsedTime = (startedAt, nowTimestamp) => {
   if (!startedAt) return "00:00:00";
@@ -94,6 +95,7 @@ export default function StaffDashboard() {
   const [walkInName, setWalkInName] = useState("");
   const [walkInMobile, setWalkInMobile] = useState("07");
   const [walkInService, setWalkInService] = useState("");
+  const [walkInErrors, setWalkInErrors] = useState({});
 
   const [nowTimestamp, setNowTimestamp] = useState(Date.now());
 
@@ -236,21 +238,41 @@ export default function StaffDashboard() {
     }
   };
 
+  const handleWalkInMobileChange = (e) => {
+    let v = String(e.target.value || "");
+    if (!v.startsWith("07")) {
+      const digits = v.replace(/\D/g, "");
+      v = `07${digits}`;
+    }
+    const after = v.slice(2).replace(/\D/g, "").slice(0, 8);
+    setWalkInMobile(`07${after}`.slice(0, 10));
+  };
+
   const handleAddWalkIn = async (e) => {
     e.preventDefault();
     setActionLoading(true);
+    setWalkInErrors({});
     try {
       if (!authBranchId || !walkInService) throw new Error("Branch or Service missing.");
+
+      const validation = validateCustomerDetails({
+        fullName: walkInName,
+        mobile: walkInMobile,
+        requireName: false,
+      });
+
+      if (!validation.isValid) {
+        setWalkInErrors(validation.errors);
+        throw new Error(Object.values(validation.errors)[0] || "Invalid customer details.");
+      }
 
       await createWalkInToken({
         tenantType: context.tenantType || authTenantType,
         organizationId: authOrgId,
         branchId: authBranchId,
         serviceId: walkInService,
-        fullName: walkInName || "Walk-in Customer",
-        mobile: walkInMobile,
-        nic: "N/A", 
-        age: 0,     
+        fullName: validation.values.fullName,
+        mobile: validation.values.mobile,
       });
 
       setWalkInName("");
@@ -259,7 +281,7 @@ export default function StaffDashboard() {
       await fetchGlobalQueue();
       alert("Token generated successfully!");
     } catch (error) {
-      alert(error.message || "Failed to create token");
+      alert(error.message || error?.errors?.mobile || "Failed to create token");
     } finally {
       setActionLoading(false);
     }
@@ -465,17 +487,19 @@ export default function StaffDashboard() {
                   className={`w-full rounded-2xl px-5 py-4 font-bold text-lg outline-none focus:ring-4 transition border-2 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-blue-900 focus:border-blue-700 placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 focus:ring-blue-100 focus:border-blue-300 placeholder-slate-400'}`} 
                   placeholder="e.g. John Doe" 
                 />
+                {walkInErrors.fullName ? <p className="mt-2 text-xs text-red-500 font-semibold">{walkInErrors.fullName}</p> : null}
               </div>
               <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Mobile Number</label>
+                <label className={`block text-xs font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Mobile Number *</label>
                 <input 
                   type="text" 
                   value={walkInMobile} 
-                  onChange={(e) => setWalkInMobile(e.target.value)} 
+                  onChange={handleWalkInMobileChange} 
                   required 
                   className={`w-full rounded-2xl px-5 py-4 font-bold text-lg outline-none focus:ring-4 transition border-2 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-blue-900 focus:border-blue-700 placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 focus:ring-blue-100 focus:border-blue-300 placeholder-slate-400'}`} 
-                  placeholder="07XXXXXXXX" 
+                  placeholder="0712345678" 
                 />
+                {walkInErrors.mobile ? <p className="mt-2 text-xs text-red-500 font-semibold">{walkInErrors.mobile}</p> : null}
               </div>
               <button 
                 type="submit" 

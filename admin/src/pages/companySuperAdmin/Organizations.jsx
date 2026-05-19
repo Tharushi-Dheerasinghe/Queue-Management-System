@@ -121,16 +121,6 @@ function OrganizationTable({ title, data, onAdd, addLabel, onEdit, onDelete, onV
                     View Links
                   </button>
                   <button 
-                    onClick={() => onToggleStatus(org.id, org.status)}
-                    className={`text-xs font-semibold px-2 py-1 rounded ${
-                      org.status === 'active' 
-                        ? 'text-amber-600 bg-amber-50 hover:bg-amber-100'
-                        : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
-                    }`}
-                  >
-                    {org.status === 'active' ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button 
                     onClick={() => onDelete(org.id)}
                     className="text-red-500 hover:text-red-700 text-xs font-semibold px-2 py-1 rounded bg-red-50 hover:bg-red-100"
                   >

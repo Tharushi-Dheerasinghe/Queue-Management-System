@@ -5,6 +5,8 @@ import { getBranchesForTenantSelection } from "../../services/tenantSelectionSer
 import { useTenant } from "../../context/TenantContext";
 import { Calendar, Clock, MapPin, Activity, CheckCircle2, XCircle, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import api from "../../services/api";
+import { validateCustomerDetails } from "../../utils/customerValidation";
+import { formatMobileInput, mobileInputProps } from "../../utils/phoneInput";
 import {
   formatLocalDateStr,
   isWorkingDay,
@@ -25,8 +27,10 @@ export default function OrganizationDetails() {
   const [selectedService, setSelectedService] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ fullName: "", mobile: "", nic: "", age: "" });
+  const [formData, setFormData] = useState({ fullName: "", mobile: "07", nic: "", age: "" });
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [selectedDates, setSelectedDates] = useState({});
   const [dateStripStarts, setDateStripStarts] = useState({});
@@ -92,12 +96,29 @@ export default function OrganizationDetails() {
   };
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    if (name === "mobile") {
+      setFormData((prev) => ({ ...prev, mobile: formatMobileInput(value) }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
+
+    const validation = validateCustomerDetails(formData);
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setBookingError(Object.values(validation.errors)[0] || "Please fix the highlighted fields.");
+      return;
+    }
+
     setBookingLoading(true);
+    setBookingError("");
+    setFieldErrors({});
     try {
       const payload = {
         tenantType,
@@ -105,7 +126,10 @@ export default function OrganizationDetails() {
         branchId: selectedBranch.id,
         serviceId: selectedService.id,
         bookingDate: getSelectedDate(selectedBranch.id),
-        ...formData
+        fullName: validation.values.fullName,
+        mobile: validation.values.mobile,
+        nic: validation.values.nic,
+        age: validation.values.age || undefined,
       };
       
       const response = await api.post("/tokens", payload);
@@ -124,7 +148,10 @@ export default function OrganizationDetails() {
         navigate(`/${tenantType}/track?new=${tokenData?.id || tokenData?._id}`);
       }
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to book token");
+      const message = err?.response?.data?.message || err?.response?.data?.errors
+        ? Object.values(err.response.data.errors)[0]
+        : "Failed to book token";
+      setBookingError(message);
     } finally {
       setBookingLoading(false);
     }
@@ -323,24 +350,29 @@ export default function OrganizationDetails() {
             </div>
             
             <form onSubmit={handleBookingSubmit} className="p-6 space-y-4">
+              {bookingError ? <p className="text-sm font-semibold text-red-600">{bookingError}</p> : null}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">{t("Full Name")} *</label>
-                <input required name="fullName" value={formData.fullName} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 outline-none transition" style={{ '--tw-ring-color': primaryColor }} placeholder={t("Enter your name")} />
+                <input required name="fullName" value={formData.fullName} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 outline-none transition ${fieldErrors.fullName ? "border-red-400" : "border-slate-200 dark:border-slate-700"}`} style={{ '--tw-ring-color': primaryColor }} placeholder={t("Enter your name")} />
+                {fieldErrors.fullName ? <p className="mt-1 text-xs text-red-600">{fieldErrors.fullName}</p> : null}
               </div>
               
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">{t("Mobile Number")} *</label>
-                <input required type="tel" name="mobile" value={formData.mobile} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 outline-none transition" style={{ '--tw-ring-color': primaryColor }} placeholder="07XXXXXXXX" />
+                <input required {...mobileInputProps} name="mobile" value={formData.mobile} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 outline-none transition ${fieldErrors.mobile ? "border-red-400" : "border-slate-200 dark:border-slate-700"}`} style={{ '--tw-ring-color': primaryColor }} placeholder="0770181369" />
+                {fieldErrors.mobile ? <p className="mt-1 text-xs text-red-600">{fieldErrors.mobile}</p> : null}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">{t("NIC Number")}</label>
-                  <input name="nic" value={formData.nic} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 outline-none transition" style={{ '--tw-ring-color': primaryColor }} placeholder="NIC (Optional)" />
+                  <input name="nic" value={formData.nic} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 outline-none transition ${fieldErrors.nic ? "border-red-400" : "border-slate-200 dark:border-slate-700"}`} style={{ '--tw-ring-color': primaryColor }} placeholder="NIC (Optional)" />
+                  {fieldErrors.nic ? <p className="mt-1 text-xs text-red-600">{fieldErrors.nic}</p> : null}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">{t("Age")}</label>
-                  <input type="number" name="age" value={formData.age} onChange={handleInputChange} className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 outline-none transition" style={{ '--tw-ring-color': primaryColor }} placeholder={t("Optional")} />
+                  <input type="number" min="1" max="120" name="age" value={formData.age} onChange={handleInputChange} className={`w-full px-4 py-3 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 outline-none transition ${fieldErrors.age ? "border-red-400" : "border-slate-200 dark:border-slate-700"}`} style={{ '--tw-ring-color': primaryColor }} placeholder={t("Optional")} />
+                  {fieldErrors.age ? <p className="mt-1 text-xs text-red-600">{fieldErrors.age}</p> : null}
                 </div>
               </div>
 

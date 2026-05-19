@@ -29,6 +29,33 @@ export default function TrackQueue() {
     myTokensRef.current = saved;
   }, [tenantType]);
 
+  const persistTokens = useCallback(
+    (tokens) => {
+      localStorage.setItem(`queueflow_${tenantType}_my_tokens`, JSON.stringify(tokens));
+      setMyTokens(tokens);
+      myTokensRef.current = tokens;
+    },
+    [tenantType]
+  );
+
+  const applyWaitingPositions = useCallback(
+    (positions = []) => {
+      if (!positions.length) return;
+
+      const current = myTokensRef.current;
+      const next = current.map((token) => {
+        const match = positions.find(
+          (entry) => String(entry.tokenId) === String(token.id || token._id)
+        );
+        if (!match || token.status !== "Waiting") return token;
+        return { ...token, peopleAhead: match.peopleAhead };
+      });
+
+      persistTokens(next);
+    },
+    [persistTokens]
+  );
+
   const refreshAllTokens = useCallback(async () => {
     const saved = JSON.parse(localStorage.getItem(`queueflow_${tenantType}_my_tokens`) || "[]");
     if (saved.length === 0) return;
@@ -37,6 +64,22 @@ export default function TrackQueue() {
       const updatedTokens = await Promise.all(
         saved.map(async (token) => {
           try {
+            if (token.tokenNumber) {
+              const trackRes = await api.get(
+                `/tokens/track/${encodeURIComponent(token.tokenNumber)}`
+              );
+              if (trackRes.data.success) {
+                const payload = trackRes.data.token || trackRes.data.data;
+                if (payload) {
+                  return {
+                    ...token,
+                    ...payload,
+                    id: payload.id || payload._id || token.id || token._id,
+                  };
+                }
+              }
+            }
+
             const res = await api.get(`/tokens/${token.id || token._id}`);
             if (res.data.success) {
               const payload = res.data.data || res.data.token;
@@ -51,13 +94,11 @@ export default function TrackQueue() {
         })
       );
 
-      localStorage.setItem(`queueflow_${tenantType}_my_tokens`, JSON.stringify(updatedTokens));
-      setMyTokens(updatedTokens);
-      myTokensRef.current = updatedTokens;
+      persistTokens(updatedTokens);
     } catch (error) {
       console.error("Failed to refresh tokens", error);
     }
-  }, [tenantType]);
+  }, [tenantType, persistTokens]);
 
   const triggerNotification = useCallback(
     (title, body) => {
@@ -70,6 +111,10 @@ export default function TrackQueue() {
 
   const handleQueueUpdated = useCallback(
     (updateData) => {
+      if (updateData?.waitingPositions?.length) {
+        applyWaitingPositions(updateData.waitingPositions);
+      }
+
       refreshAllTokens();
 
       const savedTokens = myTokensRef.current;
@@ -92,7 +137,7 @@ export default function TrackQueue() {
         }
       });
     },
-    [refreshAllTokens, t, triggerNotification]
+    [applyWaitingPositions, persistTokens, refreshAllTokens, t, triggerNotification]
   );
 
   useEffect(() => {
@@ -135,6 +180,17 @@ export default function TrackQueue() {
     myTokensRef.current = myTokens;
   }, [myTokens]);
 
+  useEffect(() => {
+    const hasWaiting = myTokens.some((token) => token.status === "Waiting");
+    if (!hasWaiting) return undefined;
+
+    const interval = setInterval(() => {
+      refreshAllTokens();
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [myTokens, refreshAllTokens]);
+
   const handleManualSearch = async (e) => {
     e.preventDefault();
     if (!searchTokenNum.trim()) return;
@@ -146,9 +202,7 @@ export default function TrackQueue() {
         const exists = myTokens.some((token) => token.tokenNumber === tokenData.tokenNumber);
         if (!exists) {
           const newTokens = [...myTokens, { ...tokenData, id: tokenData.id || tokenData._id }];
-          localStorage.setItem(`queueflow_${tenantType}_my_tokens`, JSON.stringify(newTokens));
-          setMyTokens(newTokens);
-          myTokensRef.current = newTokens;
+          persistTokens(newTokens);
 
           if (socketRef.current?.connected && tokenData.branchId) {
             socketRef.current.emit("joinBranch", tokenData.branchId);
@@ -198,9 +252,7 @@ export default function TrackQueue() {
 
   const removeToken = (tokenId) => {
     const filtered = myTokens.filter((token) => (token.id || token._id) !== tokenId);
-    localStorage.setItem(`queueflow_${tenantType}_my_tokens`, JSON.stringify(filtered));
-    setMyTokens(filtered);
-    myTokensRef.current = filtered;
+    persistTokens(filtered);
   };
 
   return (

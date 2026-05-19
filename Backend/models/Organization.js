@@ -145,6 +145,11 @@ const organizationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    subscriptionExpiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
