@@ -854,11 +854,17 @@ export const updateOrganization = async (req, res) => {
     }
 
     const requesterTenantType = getUserTenantType(req.user);
-    if (requesterTenantType && organization.tenantType !== requesterTenantType) {
-      return errorResponse(res, 403, "super_admin can only update organizations within their tenantType");
-    }
-
     const updates = buildPatchPayload(req.body || {});
+
+    // Allow super_admins to toggle status (activate/deactivate) across tenant types only
+    // If requester has a tenantType set and it's different from the organization's tenantType,
+    // only permit the request when the update payload contains exclusively a valid status change.
+    if (requesterTenantType && organization.tenantType !== requesterTenantType) {
+      const isStatusOnlyUpdate = Object.keys(updates).length === 1 && updates.status && (updates.status === 'inactive' || updates.status === 'active');
+      if (!isStatusOnlyUpdate) {
+        return errorResponse(res, 403, "super_admin can only update organizations within their tenantType");
+      }
+    }
 
     if (req.body?.tenantType && normalizeTenantType(req.body.tenantType) !== organization.tenantType) {
       return errorResponse(res, 400, "tenantType cannot be changed");
