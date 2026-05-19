@@ -349,7 +349,7 @@ export const getOrganizationBranchServices = async (req, res) => {
     const branchIds = branches.map((branch) => branch._id);
 
     const services = await Service.find({ branchIds: { $in: branchIds } })
-      .select("_id branchIds serviceName description status availableDates createdAt")
+      .select("_id branchIds serviceName description status availableDates workingDays isClosed createdAt")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -369,6 +369,8 @@ export const getOrganizationBranchServices = async (req, res) => {
             serviceName: service.serviceName,
             description: service.description || "",
             availableDates: service.availableDates || [],
+            workingDays: service.workingDays || [],
+            isClosed: Boolean(service.isClosed),
             status: service.status,
             createdAt: service.createdAt,
           });

@@ -7,6 +7,7 @@ import { legacyStorageKeys, readValue, storageKeys } from "../../utils/storage";
 import { getBranchesForTenantSelection } from "../../services/tenantSelectionService";
 import { isNestedTenant } from "../../utils/tenantHelpers";
 import { useTranslation } from "react-i18next";
+import { parseWorkingDayToIndex } from "../../utils/workingDayUtils";
 
 export default function BranchSelection() {
   const {
@@ -132,18 +133,11 @@ export default function BranchSelection() {
     // Calculate next 14 available dates based on workingDays
     const dates = [];
     let currentDate = new Date();
-    const daysMap = { 'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6 };
-    const validDays = (service.workingDays && service.workingDays.length > 0) 
-      ? service.workingDays.map(d => {
-          // Handle both numeric (0-6) and string formats ("Sunday", "0", etc.)
-          if (typeof d === 'number') return d;
-          if (typeof d === 'string') {
-            const lower = d.toLowerCase();
-            return daysMap[lower] !== undefined ? daysMap[lower] : parseInt(d, 10);
-          }
-          return 0;
-        })
-      : [0, 1, 2, 3, 4, 5, 6]; // Default all days if missing
+    const validDays = (service.workingDays && service.workingDays.length > 0)
+      ? service.workingDays
+          .map((day) => parseWorkingDayToIndex(day))
+          .filter((day) => day !== null)
+      : [0, 1, 2, 3, 4, 5, 6];
 
     for (let i = 0; i < 30 && dates.length < 14; i++) {
       if (validDays.includes(currentDate.getDay())) {

@@ -164,7 +164,7 @@ export const getBranchesForTenantSelection = async ({ tenantType, organizationId
             ? serviceData.services.map(s => ({
                 id: s.id || s._id,
                 serviceName: normalize(s.serviceName),
-                workingDays: s.workingDays || ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                workingDays: s.workingDays || ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
                 isClosed: Boolean(s.isClosed)
               }))
             : []

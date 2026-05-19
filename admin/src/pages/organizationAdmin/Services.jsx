@@ -15,6 +15,43 @@ const DAYS_OF_WEEK = [
   { val: 6, label: "Saturday" },
 ];
 
+const DAY_NAMES = DAYS_OF_WEEK.map((day) => day.label);
+
+const workingDaysToNumbers = (days) => {
+  if (!Array.isArray(days) || days.length === 0) {
+    return [0, 1, 2, 3, 4, 5, 6];
+  }
+
+  const indices = days
+    .map((day) => {
+      if (typeof day === "number" && day >= 0 && day <= 6) {
+        return day;
+      }
+
+      if (typeof day === "string") {
+        const trimmed = day.trim();
+        if (/^\d+$/.test(trimmed)) {
+          const index = Number(trimmed);
+          return index >= 0 && index <= 6 ? index : null;
+        }
+
+        const lower = trimmed.toLowerCase();
+        const exactIndex = DAY_NAMES.findIndex((name) => name.toLowerCase() === lower);
+        if (exactIndex >= 0) return exactIndex;
+
+        const shortIndex = DAY_NAMES.findIndex((name) =>
+          name.toLowerCase().startsWith(lower.slice(0, 3))
+        );
+        if (shortIndex >= 0) return shortIndex;
+      }
+
+      return null;
+    })
+    .filter((index) => index !== null && index >= 0 && index <= 6);
+
+  return indices.length > 0 ? Array.from(new Set(indices)) : [0, 1, 2, 3, 4, 5, 6];
+};
+
 const formatStatusLabel = (status = "") => {
   const normalized = String(status || "").trim().toLowerCase();
   if (!normalized) return "Unknown";
@@ -131,7 +168,7 @@ export default function SharedOrganizationAdminServices() {
 
   const handleEditDays = (service) => {
     setEditingService(service);
-    setWorkingDays(service.workingDays || [0,1,2,3,4,5,6]);
+    setWorkingDays(workingDaysToNumbers(service.workingDays));
     setAvailableDates(service.availableDates || []);
     setNewDate("");
     setIsClosed(Boolean(service.isClosed));

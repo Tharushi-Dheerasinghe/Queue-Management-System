@@ -5,6 +5,11 @@ import { getBranchesForTenantSelection } from "../../services/tenantSelectionSer
 import { useTenant } from "../../context/TenantContext";
 import { Calendar, Clock, MapPin, Activity, CheckCircle2, XCircle, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import api from "../../services/api";
+import {
+  formatLocalDateStr,
+  isWorkingDay,
+  parseLocalDateStr,
+} from "../../utils/workingDayUtils";
 
 export default function OrganizationDetails() {
   const { tenantType, organizationId } = useParams();
@@ -28,19 +33,17 @@ export default function OrganizationDetails() {
 
   const getSelectedDate = (branchId) => {
     if (selectedDates[branchId]) return selectedDates[branchId];
-    const today = new Date();
-    return new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    return formatLocalDateStr(new Date());
   };
 
   const getDateStripStart = (branchId) => {
     if (dateStripStarts[branchId]) return dateStripStarts[branchId];
-    const today = new Date();
-    return new Date(today.getTime() - (today.getTimezoneOffset() * 60000));
+    return new Date();
   };
 
   const shiftDateStrip = (branchId, days) => {
     setDateStripStarts(prev => {
-      const currentStart = prev[branchId] || new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000));
+      const currentStart = prev[branchId] || new Date();
       const next = new Date(currentStart);
       next.setDate(next.getDate() + days);
       return { ...prev, [branchId]: next };
@@ -199,7 +202,7 @@ export default function OrganizationDetails() {
                       <input 
                         type="date"
                         value={getSelectedDate(branch.id)}
-                        min={new Date().toISOString().split("T")[0]}
+                        min={formatLocalDateStr(new Date())}
                         onChange={(e) => jumpToDate(branch.id, e)}
                         className="text-xs px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:border-sky-500"
                         title="Jump to specific date"
@@ -217,27 +220,19 @@ export default function OrganizationDetails() {
                     
                     <div className="flex-1 flex gap-2 overflow-hidden justify-between">
                       {generateDateStrip(branch.id).map((dateObj, idx) => {
-                        const dateStr = dateObj.toISOString().split("T")[0];
+                        const dateStr = formatLocalDateStr(dateObj);
                         const isSelected = getSelectedDate(branch.id) === dateStr;
                         const shortDay = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
                         const dayNum = dateObj.getDate();
                         const monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' });
                         const dayOfWeek = dateObj.getDay();
-                        const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayOfWeek];
-                        const dayString = String(dayOfWeek);
 
                         // check if branch has any available services on this date
                         const isBranchAvailable = branch.services?.some(s => {
                           if (s.isClosed) return false;
-                          const isWorkingDay = s.workingDays ? s.workingDays.some(d => {
-                            if (typeof d === 'number') return d === dayOfWeek;
-                            const ds = String(d || '').toLowerCase();
-                            if (ds === String(dayOfWeek)) return true; // numeric string
-                            if (ds === dayName.toLowerCase()) return true; // name match
-                            return false;
-                          }) : true;
+                          const onWorkingDay = isWorkingDay(s.workingDays, dayOfWeek);
                           const isSpecificDate = s.availableDates && s.availableDates.includes(dateStr);
-                          return isWorkingDay || isSpecificDate;
+                          return onWorkingDay || isSpecificDate;
                         });
 
                         return (
@@ -275,22 +270,13 @@ export default function OrganizationDetails() {
                   branch.services.map((service) => {
                     // Check availability based on selected date
                     const currentSelectedDateStr = getSelectedDate(branch.id);
-                    const selectedDateObj = new Date(currentSelectedDateStr);
-                    const dayOfWeek = selectedDateObj.getDay();
-                    const dayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayOfWeek];
-                    const dayString = String(dayOfWeek);
-                    
+                    const dayOfWeek = parseLocalDateStr(currentSelectedDateStr).getDay();
+
                     let isAvailable = false;
                     if (!service.isClosed) {
-                      const isWorkingDay = service.workingDays ? service.workingDays.some(d => {
-                        if (typeof d === 'number') return d === dayOfWeek;
-                        const ds = String(d || '').toLowerCase();
-                        if (ds === String(dayOfWeek)) return true;
-                        if (ds === dayName.toLowerCase()) return true;
-                        return false;
-                      }) : true;
+                      const onWorkingDay = isWorkingDay(service.workingDays, dayOfWeek);
                       const isSpecificDate = service.availableDates && service.availableDates.includes(currentSelectedDateStr);
-                      isAvailable = isWorkingDay || isSpecificDate;
+                      isAvailable = onWorkingDay || isSpecificDate;
                     }
 
                     return (

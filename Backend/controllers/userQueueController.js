@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Branch from "../models/Branch.js";
 import Service from "../models/Service.js";
 import Organization from "../models/Organization.js";
+import { normalizeWorkingDaysToNames } from "../utils/workingDays.js";
 
 const normalize = (value = "") => String(value || "").trim();
 const normalizeLower = (value = "") => normalize(value).toLowerCase();
@@ -139,7 +140,7 @@ export const getUserServices = async (req, res) => {
         serviceName: service.serviceName,
         description: service.description || "",
         availableDates: service.availableDates || [],
-        workingDays: service.workingDays || [],
+        workingDays: normalizeWorkingDaysToNames(service.workingDays || []),
         isClosed: service.isClosed || false,
       })),
     });

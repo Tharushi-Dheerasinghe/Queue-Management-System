@@ -14,6 +14,7 @@ import { isValidObjectId, requireFields } from "../utils/validationHelpers.js";
 import mongoose from "mongoose";
 import Token from "../models/Token.js";
 import { sendSMS } from "../utils/smsService.js";
+import { normalizeWorkingDaysToNames } from "../utils/workingDays.js";
 
 const ALLOWED_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket"]);
 const ALLOWED_STATUS = new Set(["active", "inactive"]);
@@ -391,46 +392,7 @@ export const updateService = async (req, res) => {
         return errorResponse(res, 400, "workingDays must be an array");
       }
 
-      const DAY_NAMES = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ];
-
-      const normalizedDays = updates.workingDays
-        .map((d) => {
-          if (typeof d === "number") {
-            return DAY_NAMES[d] || null;
-          }
-
-          if (typeof d === "string") {
-            const trimmed = d.trim();
-            // numeric strings like "0", "1"
-            if (/^\d+$/.test(trimmed)) {
-              const idx = Number(trimmed);
-              return DAY_NAMES[idx] || null;
-            }
-
-            // Accept either full name or short (Mon, Tue)
-            const lower = trimmed.toLowerCase();
-            const exact = DAY_NAMES.find((n) => n.toLowerCase() === lower);
-            if (exact) return exact;
-            const short = DAY_NAMES.find((n) => n.toLowerCase().startsWith(lower.slice(0, 3)));
-            if (short) return short;
-
-            // Fallback: capitalize
-            return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-          }
-
-          return null;
-        })
-        .filter(Boolean);
-
-      updates.workingDays = Array.from(new Set(normalizedDays));
+      updates.workingDays = normalizeWorkingDaysToNames(updates.workingDays);
     }
 
     if (updates.serviceName && updates.serviceName !== service.serviceName) {

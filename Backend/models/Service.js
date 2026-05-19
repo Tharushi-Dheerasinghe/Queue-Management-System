@@ -47,7 +47,7 @@ const serviceSchema = new mongoose.Schema(
 
     workingDays: {
       type: [String],
-      default: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+      default: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
     },
 
     availableDates: {
