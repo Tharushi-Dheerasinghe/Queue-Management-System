@@ -21,34 +21,34 @@ export default function Esp32UnitSetupBlock({ services = [], backendUrl = "" }) 
       </p>
       {services.map((svc, sIdx) => {
         const counterId = svc.counterId || "unknown";
-        const apiBase = svc.apiBase || fallbackApiBase;
-        const setupUrl =
-          svc.setupUrl ||
-          `http://192.168.4.1/?counterId=${encodeURIComponent(counterId)}&api=${encodeURIComponent(apiBase)}&unit=${encodeURIComponent(svc.serviceName || "Unit")}`;
+        const postUrl = `${fallbackApiBase}/tokens/iot/complete-and-next`;
 
         return (
-          <div key={svc.id || sIdx} className="pl-3 border-l-2 border-emerald-400 space-y-2 pb-3 border-b border-emerald-100 last:border-0">
-            <p className="text-xs font-bold text-slate-800">{svc.serviceName}</p>
-            {svc.counterName ? (
-              <p className="text-[10px] text-slate-500">Counter: {svc.counterName}</p>
-            ) : null}
-            <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
-              Unit setup link (phone on QMS-Setup WiFi)
-            </p>
-            <a
-              href={setupUrl}
-              className="block w-full bg-white border border-emerald-300 p-2 rounded text-xs text-blue-700 break-all underline"
-            >
-              {setupUrl}
-            </a>
-            <details className="text-[10px] text-slate-500">
-              <summary className="cursor-pointer font-semibold text-slate-600">Technical details (optional)</summary>
-              <p className="mt-1">API base: <span className="font-mono select-all">{apiBase}</span></p>
-              <p>Counter ID: <span className="font-mono select-all">{counterId}</span></p>
-              {svc.statusUrl ? (
-                <p className="mt-1 break-all">Status: <span className="font-mono select-all">{svc.statusUrl}</span></p>
-              ) : null}
-            </details>
+          <div key={svc.id || sIdx} className="pl-4 py-3 border-l-4 border-emerald-500 bg-white rounded-lg shadow-sm space-y-3 mb-4">
+            <div>
+              <p className="text-sm font-black text-slate-800 uppercase tracking-wider">{svc.serviceName}</p>
+              {svc.counterName && <p className="text-xs font-semibold text-emerald-600 mt-1">{svc.counterName}</p>}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-100">
+              <div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Full API Link
+                </p>
+                <code className="block w-full bg-white border border-slate-200 p-2 rounded text-xs text-blue-700 break-all select-all font-mono">
+                  {postUrl}
+                </code>
+              </div>
+              
+              <div>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Unit ID
+                </p>
+                <code className="block w-full bg-white border border-slate-200 p-2 rounded text-xs text-blue-700 break-all select-all font-mono font-bold">
+                  {counterId}
+                </code>
+              </div>
+            </div>
           </div>
         );
       })}
