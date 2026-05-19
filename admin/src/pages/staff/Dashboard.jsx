@@ -94,6 +94,8 @@ export default function StaffDashboard() {
   const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
   const [walkInName, setWalkInName] = useState("");
   const [walkInMobile, setWalkInMobile] = useState("07");
+  const [walkInNic, setWalkInNic] = useState("");
+  const [walkInAge, setWalkInAge] = useState("");
   const [walkInService, setWalkInService] = useState("");
   const [walkInErrors, setWalkInErrors] = useState({});
 
@@ -258,6 +260,8 @@ export default function StaffDashboard() {
       const validation = validateCustomerDetails({
         fullName: walkInName,
         mobile: walkInMobile,
+        nic: walkInNic,
+        age: walkInAge,
         requireName: false,
       });
 
@@ -273,10 +277,14 @@ export default function StaffDashboard() {
         serviceId: walkInService,
         fullName: validation.values.fullName,
         mobile: validation.values.mobile,
+        nic: validation.values.nic,
+        age: validation.values.age,
       });
 
       setWalkInName("");
       setWalkInMobile("07");
+      setWalkInNic("");
+      setWalkInAge("");
       setIsWalkInModalOpen(false);
       await fetchGlobalQueue();
       alert("Token generated successfully!");
@@ -500,6 +508,31 @@ export default function StaffDashboard() {
                   placeholder="0712345678" 
                 />
                 {walkInErrors.mobile ? <p className="mt-2 text-xs text-red-500 font-semibold">{walkInErrors.mobile}</p> : null}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-xs font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>NIC (Optional)</label>
+                  <input 
+                    type="text" 
+                    value={walkInNic} 
+                    onChange={(e) => setWalkInNic(e.target.value)} 
+                    className={`w-full rounded-2xl px-5 py-4 font-bold text-lg outline-none focus:ring-4 transition border-2 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-blue-900 focus:border-blue-700 placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 focus:ring-blue-100 focus:border-blue-300 placeholder-slate-400'}`} 
+                    placeholder="NIC Number" 
+                  />
+                  {walkInErrors.nic ? <p className="mt-2 text-xs text-red-500 font-semibold">{walkInErrors.nic}</p> : null}
+                </div>
+                <div>
+                  <label className={`block text-xs font-black uppercase tracking-widest mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Age (Optional)</label>
+                  <input 
+                    type="number" 
+                    value={walkInAge} 
+                    onChange={(e) => setWalkInAge(e.target.value)} 
+                    min="1" max="120"
+                    className={`w-full rounded-2xl px-5 py-4 font-bold text-lg outline-none focus:ring-4 transition border-2 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-white focus:ring-blue-900 focus:border-blue-700 placeholder-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 focus:ring-blue-100 focus:border-blue-300 placeholder-slate-400'}`} 
+                    placeholder="Age" 
+                  />
+                  {walkInErrors.age ? <p className="mt-2 text-xs text-red-500 font-semibold">{walkInErrors.age}</p> : null}
+                </div>
               </div>
               <button 
                 type="submit" 
