@@ -5,7 +5,7 @@ import { bulkCreateSystem } from "../../services/tenantService";
 
 export default function SystemBuilder() {
   const navigate = useNavigate();
-  const { tenantType } = useAuth(); // "bank", "supermarket", etc.
+  const { tenantType, role } = useAuth(); // "bank", "supermarket", etc.
   
   // Helper to get item from local storage safely
   const getSaved = (key, defaultVal) => {
@@ -100,7 +100,7 @@ export default function SystemBuilder() {
     setError(null);
     try {
       const payload = {
-        tenantType: (tenantType && tenantType !== "company" ? tenantType : customTenantType.toLowerCase().trim()),
+        tenantType: (role === "company_super_admin" || !tenantType || tenantType === "company" ? customTenantType.toLowerCase().trim() : tenantType.toLowerCase().trim()),
         organizationName: orgName,
         branding,
         branches: branches.map(b => ({
