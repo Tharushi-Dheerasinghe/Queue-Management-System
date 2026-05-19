@@ -334,7 +334,13 @@ export const createToken = async (req, res) => {
 
     const io = getIo();
     if (io) {
-      io.to(branch._id.toString()).emit("queueUpdated", { action: "createToken", token: createdToken });
+      io.to(branch._id.toString()).emit("queueUpdated", {
+        action: "createToken",
+        token: createdToken,
+        branchId: String(createdToken.branchId),
+        serviceId: String(createdToken.serviceId),
+        createdToken: createdToken
+      });
     }
 
     return res.status(201).json({ success: true, token: createdToken });
@@ -385,7 +391,13 @@ export const updateTokenStatus = async (req, res) => {
 
     const io = getIo();
     if (io && token.branchId) {
-      io.to(token.branchId.toString()).emit("queueUpdated", { action: "updateStatus", token });
+      io.to(token.branchId.toString()).emit("queueUpdated", {
+        action: "updateStatus",
+        token,
+        branchId: String(token.branchId),
+        serviceId: String(token.serviceId),
+        updatedToken: token
+      });
     }
 
     return res.status(200).json({ success: true, token });
@@ -601,7 +613,14 @@ export const callNextToken = async (req, res) => {
 
     const io = getIo();
     if (io) {
-      io.to(counter.branchId.toString()).emit("queueUpdated", { action: "callNextToken", token: nextToken, counterId: counter.id });
+      io.to(counter.branchId.toString()).emit("queueUpdated", {
+        action: "callNextToken",
+        token: nextToken,
+        calledToken: nextToken,
+        branchId: String(nextToken.branchId),
+        serviceId: String(nextToken.serviceId),
+        counterId: counter.id
+      });
     }
 
     return res.status(200).json({ success: true, token: nextToken });
@@ -690,7 +709,14 @@ export const skipAndCallNextToken = async (req, res) => {
 
     const io = getIo();
     if (io) {
-      io.to(counter.branchId.toString()).emit("queueUpdated", { action: "skipAndCallNextToken", token: nextToken, counterId: counter.id });
+      io.to(counter.branchId.toString()).emit("queueUpdated", {
+        action: "skipAndCallNextToken",
+        token: nextToken,
+        calledToken: nextToken,
+        branchId: String(nextToken.branchId),
+        serviceId: String(nextToken.serviceId),
+        counterId: counter.id
+      });
     }
 
     return res.status(200).json({ success: true, token: nextToken });
@@ -867,7 +893,14 @@ export const completeAndCallNextToken = async (req, res) => {
 
     const io = getIo();
     if (io) {
-      io.to(counter.branchId.toString()).emit("queueUpdated", { action: "iotNextToken", token: nextToken, counterId: counter.id });
+      io.to(counter.branchId.toString()).emit("queueUpdated", {
+        action: "iotNextToken",
+        token: nextToken,
+        calledToken: nextToken,
+        branchId: String(nextToken.branchId),
+        serviceId: String(nextToken.serviceId),
+        counterId: counter.id
+      });
     }
 
     const remainingCount = await Token.countDocuments({
@@ -977,7 +1010,14 @@ export const recallToken = async (req, res) => {
 
     const io = getIo();
     if (io) {
-      io.to(counter.branchId.toString()).emit("queueUpdated", { action: "recallToken", token: token, counterId: counter.id });
+      io.to(counter.branchId.toString()).emit("queueUpdated", {
+        action: "recallToken",
+        token: token,
+        calledToken: token,
+        branchId: String(token.branchId),
+        serviceId: String(token.serviceId),
+        counterId: counter.id
+      });
     }
 
     return res.status(200).json({ success: true, token });

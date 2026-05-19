@@ -229,7 +229,13 @@ export default function OrganizationDetails() {
                         // check if branch has any available services on this date
                         const isBranchAvailable = branch.services?.some(s => {
                           if (s.isClosed) return false;
-                          const isWorkingDay = s.workingDays ? s.workingDays.some(d => d === dayOfWeek || d === dayString || d === dayName) : true;
+                          const isWorkingDay = s.workingDays ? s.workingDays.some(d => {
+                            if (typeof d === 'number') return d === dayOfWeek;
+                            const ds = String(d || '').toLowerCase();
+                            if (ds === String(dayOfWeek)) return true; // numeric string
+                            if (ds === dayName.toLowerCase()) return true; // name match
+                            return false;
+                          }) : true;
                           const isSpecificDate = s.availableDates && s.availableDates.includes(dateStr);
                           return isWorkingDay || isSpecificDate;
                         });
@@ -276,7 +282,13 @@ export default function OrganizationDetails() {
                     
                     let isAvailable = false;
                     if (!service.isClosed) {
-                      const isWorkingDay = service.workingDays ? service.workingDays.some(d => d === dayOfWeek || d === dayString || d === dayName) : true;
+                      const isWorkingDay = service.workingDays ? service.workingDays.some(d => {
+                        if (typeof d === 'number') return d === dayOfWeek;
+                        const ds = String(d || '').toLowerCase();
+                        if (ds === String(dayOfWeek)) return true;
+                        if (ds === dayName.toLowerCase()) return true;
+                        return false;
+                      }) : true;
                       const isSpecificDate = service.availableDates && service.availableDates.includes(currentSelectedDateStr);
                       isAvailable = isWorkingDay || isSpecificDate;
                     }
