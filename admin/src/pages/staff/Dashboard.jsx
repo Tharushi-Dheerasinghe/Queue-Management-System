@@ -278,7 +278,7 @@ export default function StaffDashboard() {
   });
 
   return (
-    <div className={`fixed inset-0 z-[100] flex flex-col p-6 transition-colors duration-300 overflow-hidden ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-900'}`}>
+    <div className={`fixed inset-0 z-[100] flex flex-col p-4 md:p-6 transition-colors duration-300 overflow-y-auto lg:overflow-hidden ${isDarkMode ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-900'}`}>
       
       {/* Top Header */}
       <div className={`flex justify-between items-center mb-6 px-4 py-3 rounded-2xl shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
@@ -325,10 +325,10 @@ export default function StaffDashboard() {
       </div>
 
       {/* Main Control Panel (Only for activeUnitId) */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-none mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 flex-none lg:flex-[2] min-h-0 mb-4 md:mb-6">
         
         {/* Left Sidebar: Wait & Rejected List for Active Unit */}
-        <div className={`col-span-1 rounded-3xl border shadow-xl flex flex-col min-h-[450px] overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+        <div className={`col-span-1 rounded-3xl border shadow-xl flex flex-col min-h-[300px] lg:min-h-0 overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
           <div className={`p-4 border-b font-bold tracking-wider uppercase text-center ${isDarkMode ? 'bg-slate-950/50 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
             Wait / Rejected ({services.find(s=>s.id===activeUnitId)?.serviceName || ""})
           </div>
@@ -358,7 +358,7 @@ export default function StaffDashboard() {
         </div>
 
         {/* Center: Main Display & Controls for Active Unit */}
-        <div className={`col-span-1 lg:col-span-3 flex flex-col rounded-3xl shadow-2xl border overflow-hidden min-h-[450px] relative ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-black/30' : 'bg-white border-slate-200'}`}>
+        <div className={`col-span-1 lg:col-span-3 flex flex-col rounded-3xl shadow-2xl border overflow-hidden min-h-[350px] lg:min-h-0 relative ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-black/30' : 'bg-white border-slate-200'}`}>
           <div className={`absolute top-0 left-0 w-full h-3 ${isDarkMode ? 'bg-blue-600' : 'bg-blue-500'}`}></div>
           
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -403,7 +403,7 @@ export default function StaffDashboard() {
       </div>
 
       {/* Bottom Global View: All Units (Horizontal scrollable grid) */}
-      <div className={`flex-1 rounded-3xl border shadow-xl flex flex-col overflow-hidden ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+      <div className={`flex-1 rounded-3xl border shadow-xl flex flex-col overflow-hidden min-h-[200px] ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
         <div className={`p-4 border-b font-black tracking-widest uppercase flex items-center gap-3 ${isDarkMode ? 'bg-slate-950/50 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
           <div className={`w-3 h-3 rounded-full ${isDarkMode ? 'bg-blue-500' : 'bg-blue-600'}`}></div>
           Branch Global Queue View
