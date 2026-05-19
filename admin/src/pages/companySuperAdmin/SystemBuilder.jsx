@@ -22,7 +22,8 @@ export default function SystemBuilder() {
   const [error, setError] = useState(null);
 
   // Payload State
-  const [customTenantType, setCustomTenantType] = useState(() => getSaved("systemBuilder_tenant", "bank"));
+  const [customTenantType, setCustomTenantType] = useState(() => getSaved("systemBuilder_tenant", ""));
+  const [isOtherCategory, setIsOtherCategory] = useState(() => getSaved("systemBuilder_isOtherCat", false));
   const [orgName, setOrgName] = useState(() => getSaved("systemBuilder_org", ""));
   const [branding, setBranding] = useState(() => getSaved("systemBuilder_branding", {
     logoUrl: "",
@@ -43,10 +44,11 @@ export default function SystemBuilder() {
     if (step === 4) return; // Don't persist success step to avoid locking user there
     localStorage.setItem("systemBuilder_step", JSON.stringify(step));
     localStorage.setItem("systemBuilder_tenant", JSON.stringify(customTenantType));
+    localStorage.setItem("systemBuilder_isOtherCat", JSON.stringify(isOtherCategory));
     localStorage.setItem("systemBuilder_org", JSON.stringify(orgName));
     localStorage.setItem("systemBuilder_branding", JSON.stringify(branding));
     localStorage.setItem("systemBuilder_branches", JSON.stringify(branches));
-  }, [step, customTenantType, orgName, branding, branches]);
+  }, [step, customTenantType, isOtherCategory, orgName, branding, branches]);
 
   const addBranch = () => {
     setBranches([
@@ -98,7 +100,7 @@ export default function SystemBuilder() {
     setError(null);
     try {
       const payload = {
-        tenantType: (tenantType && tenantType !== "company" ? tenantType : customTenantType.toLowerCase().trim() || "bank"),
+        tenantType: (tenantType && tenantType !== "company" ? tenantType : customTenantType.toLowerCase().trim()),
         organizationName: orgName,
         branding,
         branches: branches.map(b => ({
@@ -116,6 +118,7 @@ export default function SystemBuilder() {
         // Clear saved state so next time it's fresh
         localStorage.removeItem("systemBuilder_step");
         localStorage.removeItem("systemBuilder_tenant");
+        localStorage.removeItem("systemBuilder_isOtherCat");
         localStorage.removeItem("systemBuilder_org");
         localStorage.removeItem("systemBuilder_branding");
         localStorage.removeItem("systemBuilder_branches");
@@ -157,22 +160,38 @@ export default function SystemBuilder() {
             
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Industry Category (Type) *</label>
-              <input 
-                type="text" 
-                value={customTenantType}
-                onChange={e => setCustomTenantType(e.target.value)}
-                className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
-                placeholder="e.g. Bank, Hospital, Police, Salon"
-                list="industry-types"
-              />
-              <datalist id="industry-types">
-                <option value="Bank" />
-                <option value="Supermarket" />
-                <option value="Hospital" />
-                <option value="Police" />
-                <option value="Salon" />
-                <option value="Pharmacy" />
-              </datalist>
+              <select 
+                value={isOtherCategory ? "Other" : customTenantType}
+                onChange={e => {
+                  if (e.target.value === "Other") {
+                    setIsOtherCategory(true);
+                    setCustomTenantType("");
+                  } else {
+                    setIsOtherCategory(false);
+                    setCustomTenantType(e.target.value);
+                  }
+                }}
+                className={`w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none ${isOtherCategory ? 'mb-2' : ''}`}
+              >
+                <option value="" disabled>-- Select Industry Category --</option>
+                <option value="bank">Bank</option>
+                <option value="hospital">Hospital</option>
+                <option value="police">Police</option>
+                <option value="supermarket">Supermarket</option>
+                <option value="salon">Salon</option>
+                <option value="pharmacy">Pharmacy</option>
+                <option value="Other">Other (Type manually)</option>
+              </select>
+
+              {isOtherCategory && (
+                <input 
+                  type="text" 
+                  value={customTenantType}
+                  onChange={e => setCustomTenantType(e.target.value)}
+                  className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-sky-500 outline-none"
+                  placeholder="Type your custom category (e.g. Cinema)"
+                />
+              )}
               <p className="text-xs text-slate-500 mt-1">Select an existing category or type a completely new one.</p>
             </div>
 
@@ -257,10 +276,17 @@ export default function SystemBuilder() {
 
             <div className="flex justify-end pt-4">
               <button 
-                onClick={() => setStep(2)}
-                className="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold hover:bg-slate-800 transition"
+                onClick={() => {
+                  if (!customTenantType || !customTenantType.trim()) {
+                    setError("Please select or enter an Industry Category.");
+                    return;
+                  }
+                  setError(null);
+                  setStep(2);
+                }}
+                className="bg-sky-600 text-white px-6 py-2.5 rounded-xl hover:bg-sky-700 transition"
               >
-                Next: Setup Branches →
+                Next Step →
               </button>
             </div>
           </div>
