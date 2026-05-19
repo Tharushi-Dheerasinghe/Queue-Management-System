@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { bulkCreateSystem } from "../../services/tenantService";
@@ -6,26 +6,47 @@ import { bulkCreateSystem } from "../../services/tenantService";
 export default function SystemBuilder() {
   const navigate = useNavigate();
   const { tenantType } = useAuth(); // "bank", "supermarket", etc.
-  const [step, setStep] = useState(1);
+  
+  // Helper to get item from local storage safely
+  const getSaved = (key, defaultVal) => {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : defaultVal;
+    } catch {
+      return defaultVal;
+    }
+  };
+
+  const [step, setStep] = useState(() => getSaved("systemBuilder_step", 1));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Payload State
-  const [customTenantType, setCustomTenantType] = useState("bank");
-  const [orgName, setOrgName] = useState("");
-  const [branding, setBranding] = useState({
+  const [customTenantType, setCustomTenantType] = useState(() => getSaved("systemBuilder_tenant", "bank"));
+  const [orgName, setOrgName] = useState(() => getSaved("systemBuilder_org", ""));
+  const [branding, setBranding] = useState(() => getSaved("systemBuilder_branding", {
     logoUrl: "",
     primaryColor: "#0284c7", // default sky-600
     welcomeText: "Welcome to our Queue System",
-  });
+  }));
   
   // Branches with nested Units
   // Initial state: 1 branch with 1 unit
-  const [branches, setBranches] = useState([
+  const [branches, setBranches] = useState(() => getSaved("systemBuilder_branches", [
     { id: 1, branchName: "", city: "", units: [{ id: 1, serviceName: "" }] }
-  ]);
+  ]));
 
   const [exportData, setExportData] = useState(null);
+
+  // Persist state to local storage on changes
+  useEffect(() => {
+    if (step === 4) return; // Don't persist success step to avoid locking user there
+    localStorage.setItem("systemBuilder_step", JSON.stringify(step));
+    localStorage.setItem("systemBuilder_tenant", JSON.stringify(customTenantType));
+    localStorage.setItem("systemBuilder_org", JSON.stringify(orgName));
+    localStorage.setItem("systemBuilder_branding", JSON.stringify(branding));
+    localStorage.setItem("systemBuilder_branches", JSON.stringify(branches));
+  }, [step, customTenantType, orgName, branding, branches]);
 
   const addBranch = () => {
     setBranches([
@@ -91,6 +112,13 @@ export default function SystemBuilder() {
       if (res.success) {
         setExportData(res);
         setStep(4); // Success / Export Step
+        
+        // Clear saved state so next time it's fresh
+        localStorage.removeItem("systemBuilder_step");
+        localStorage.removeItem("systemBuilder_tenant");
+        localStorage.removeItem("systemBuilder_org");
+        localStorage.removeItem("systemBuilder_branding");
+        localStorage.removeItem("systemBuilder_branches");
       } else {
         throw new Error(res.message);
       }
