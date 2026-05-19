@@ -1,9 +1,8 @@
 import { Outlet, useParams, Navigate, useLocation } from "react-router-dom";
-import { tenantConfig, getTenantConfig } from "../configs/tenantConfig.js";
+import { getTenantConfig } from "../configs/tenantConfig.js";
 import Navbar from "../components/common/NavBar";
 import Footer from "../components/common/Footer";
 import EmergencyCallButton from "../components/common/EmergencyCallButton.jsx";
-import Chatbot from "../components/common/Chatbot.jsx";
 import { TenantProvider } from "../context/TenantContext";
 
 export default function TenantLayout() {
@@ -15,7 +14,6 @@ export default function TenantLayout() {
     return <Navigate to="/" replace />;
   }
 
-  // Show EmergencyCallButton only on TenantHome and MyBooking pages
   const showEmergencyButton = [
     `/${tenantType}`,
     `/${tenantType}/my-booking`,
@@ -37,7 +35,6 @@ export default function TenantLayout() {
         <EmergencyCallButton name="Police Emergency" number="119" />
       )}
       <Footer />
-      <Chatbot />
     </div>
   );
 }

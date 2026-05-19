@@ -29,9 +29,21 @@ export default function ChatbotWidget() {
 
     try {
       const response = await api.post("/chat", { message: userMessage });
-      setMessages((prev) => [...prev, { sender: "bot", text: response.data.reply }]);
+      const reply = response.data?.reply?.trim();
+      if (!reply) {
+        throw new Error("Empty chatbot response");
+      }
+      setMessages((prev) => [...prev, { sender: "bot", text: reply }]);
     } catch (error) {
-      setMessages((prev) => [...prev, { sender: "bot", text: "Sorry, I am having trouble connecting to the server right now." }]);
+      console.error("Chat error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text:
+            "Sorry, I could not reach the assistant. Please check your connection and try again.",
+        },
+      ]);
     } finally {
       setLoading(false);
     }
