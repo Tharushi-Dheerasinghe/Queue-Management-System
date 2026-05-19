@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import Branch from "../models/Branch.js";
 import User from "../models/User.js";
 import Token from "../models/Token.js";
+import Counter from "../models/Counter.js";
 import {
   getBranchScope,
   getOrganizationScope,
@@ -606,12 +607,36 @@ export const getBranchDisplayData = async (req, res) => {
       status: "Waiting"
     }).sort({ sequenceNumber: 1 }).limit(5).lean();
 
+    const counterIds = [
+      ...new Set(
+        calledTokens
+          .map((token) => token.counterId)
+          .filter(Boolean)
+          .map((id) => String(id))
+      ),
+    ];
+
+    const counters = counterIds.length
+      ? await Counter.find({ _id: { $in: counterIds } }).select("_id counterName serviceId").lean()
+      : [];
+
+    const counterMap = new Map(counters.map((counter) => [String(counter._id), counter]));
+
+    const calledWithUnits = calledTokens.map((token) => {
+      const counter = token.counterId ? counterMap.get(String(token.counterId)) : null;
+      return {
+        ...token,
+        unitName: token.serviceName || "",
+        counterName: counter?.counterName || "",
+      };
+    });
+
     return res.status(200).json({
       success: true,
       data: {
         branch: branch,
         branding: branch.organizationId?.branding || {},
-        called: calledTokens,
+        called: calledWithUnits,
         waiting: waitingTokens
       }
     });

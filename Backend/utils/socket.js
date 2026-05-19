@@ -21,6 +21,16 @@ export const initSocket = (httpServer) => {
       }
     });
 
+    socket.on("joinBranches", (branchIds) => {
+      if (!Array.isArray(branchIds)) return;
+      branchIds.forEach((branchId) => {
+        if (branchId) {
+          socket.join(branchId.toString());
+        }
+      });
+      console.log(`Socket ${socket.id} joined ${branchIds.length} branch room(s)`);
+    });
+
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
     });

@@ -7,7 +7,7 @@ import WorkSession from "../models/WorkSession.js";
 import { buildTokenPrefix, formatSequenceNumber } from "../utils/generateToken.js";
 import { normalizeTenantType } from "../utils/scopeHelpers.js";
 import Counter from "../models/Counter.js";
-import { getIo } from "../utils/socket.js";
+import { emitQueueUpdated, enrichTokenForClient } from "../utils/queueEvents.js";
 
 const normalize = (value = "") => String(value || "").trim();
 const normalizeLower = (value = "") => normalize(value).toLowerCase();
@@ -332,16 +332,11 @@ export const createToken = async (req, res) => {
       }
     }
 
-    const io = getIo();
-    if (io) {
-      io.to(branch._id.toString()).emit("queueUpdated", {
-        action: "createToken",
-        token: createdToken,
-        branchId: String(createdToken.branchId),
-        serviceId: String(createdToken.serviceId),
-        createdToken: createdToken
-      });
-    }
+    await emitQueueUpdated(branch._id, {
+      action: "createToken",
+      token: createdToken,
+      serviceId: String(createdToken.serviceId),
+    });
 
     return res.status(201).json({ success: true, token: createdToken });
   } catch (error) {
@@ -389,14 +384,12 @@ export const updateTokenStatus = async (req, res) => {
       userId: token.userId || req.user?.id
     });
 
-    const io = getIo();
-    if (io && token.branchId) {
-      io.to(token.branchId.toString()).emit("queueUpdated", {
+    if (token.branchId) {
+      await emitQueueUpdated(token.branchId, {
         action: "updateStatus",
         token,
-        branchId: String(token.branchId),
         serviceId: String(token.serviceId),
-        updatedToken: token
+        updatedToken: token,
       });
     }
 
@@ -510,7 +503,8 @@ export const getToken = async (req, res) => {
       return res.status(404).json({ success: false, message: "Token not found" });
     }
 
-    return res.json({ success: true, token: buildTokenResponse(token) });
+    const enriched = await enrichTokenForClient(token);
+    return res.json({ success: true, data: enriched, token: enriched });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -611,17 +605,13 @@ export const callNextToken = async (req, res) => {
       await counter.save();
     }
 
-    const io = getIo();
-    if (io) {
-      io.to(counter.branchId.toString()).emit("queueUpdated", {
-        action: "callNextToken",
-        token: nextToken,
-        calledToken: nextToken,
-        branchId: String(nextToken.branchId),
-        serviceId: String(nextToken.serviceId),
-        counterId: counter.id
-      });
-    }
+    await emitQueueUpdated(counter.branchId, {
+      action: "callNextToken",
+      token: nextToken,
+      calledToken: nextToken,
+      serviceId: String(nextToken.serviceId),
+      counterId: counter.id,
+    });
 
     return res.status(200).json({ success: true, token: nextToken });
   } catch (error) {
@@ -707,17 +697,13 @@ export const skipAndCallNextToken = async (req, res) => {
       await counter.save();
     }
 
-    const io = getIo();
-    if (io) {
-      io.to(counter.branchId.toString()).emit("queueUpdated", {
-        action: "skipAndCallNextToken",
-        token: nextToken,
-        calledToken: nextToken,
-        branchId: String(nextToken.branchId),
-        serviceId: String(nextToken.serviceId),
-        counterId: counter.id
-      });
-    }
+    await emitQueueUpdated(counter.branchId, {
+      action: "skipAndCallNextToken",
+      token: nextToken,
+      calledToken: nextToken,
+      serviceId: String(nextToken.serviceId),
+      counterId: counter.id,
+    });
 
     return res.status(200).json({ success: true, token: nextToken });
   } catch (error) {
@@ -891,17 +877,13 @@ export const completeAndCallNextToken = async (req, res) => {
       await counter.save();
     }
 
-    const io = getIo();
-    if (io) {
-      io.to(counter.branchId.toString()).emit("queueUpdated", {
-        action: "iotNextToken",
-        token: nextToken,
-        calledToken: nextToken,
-        branchId: String(nextToken.branchId),
-        serviceId: String(nextToken.serviceId),
-        counterId: counter.id
-      });
-    }
+    await emitQueueUpdated(counter.branchId, {
+      action: "iotNextToken",
+      token: nextToken,
+      calledToken: nextToken,
+      serviceId: String(nextToken.serviceId),
+      counterId: counter.id,
+    });
 
     const remainingCount = await Token.countDocuments({
       branchId: counter.branchId,
@@ -1008,17 +990,13 @@ export const recallToken = async (req, res) => {
       await counter.save();
     }
 
-    const io = getIo();
-    if (io) {
-      io.to(counter.branchId.toString()).emit("queueUpdated", {
-        action: "recallToken",
-        token: token,
-        calledToken: token,
-        branchId: String(token.branchId),
-        serviceId: String(token.serviceId),
-        counterId: counter.id
-      });
-    }
+    await emitQueueUpdated(counter.branchId, {
+      action: "recallToken",
+      token,
+      calledToken: token,
+      serviceId: String(token.serviceId),
+      counterId: counter.id,
+    });
 
     return res.status(200).json({ success: true, token });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { io } from "socket.io-client";
+import { createQueueSocket } from "../../utils/socketClient";
 import { useNavigate, useOutletContext, useParams } from "react-router-dom";
 import Button from "../../components/common/Button";
 import { statusConfig } from "../../data/dummyData";
@@ -75,23 +75,23 @@ export default function QueueStatus() {
   useEffect(() => {
     if (!tokenData?.branchId) return;
 
-    const SOCKET_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-    const socket = io(SOCKET_URL);
+    const socket = createQueueSocket();
 
     socket.on("connect", () => {
-      console.log("Connected to live queue updates");
       socket.emit("joinBranch", tokenData.branchId);
     });
 
     socket.on("queueUpdated", (data) => {
-      console.log("Queue updated via live socket", data);
-      
-      // If the called token matches the user's token, show a notification
-      if (data?.token && data.token.id === tokenData?.id && data.token.status === "Called") {
+      const called = data?.calledToken || data?.token;
+      const calledId = String(called?.id || called?._id || "");
+      const myId = String(tokenData?.id || tokenData?._id || "");
+
+      if (calledId && calledId === myId && called?.status === "Called") {
         if ("Notification" in window && Notification.permission === "granted") {
+          const counterLabel = data?.counter?.counterName || called.counterName || "counter";
           new Notification("It's Your Turn!", {
-            body: `Token ${data.token.sequenceNumber || data.token.tokenNumber} is now being served.`,
-            icon: "/favicon.ico" // You can change this to a proper app icon
+            body: `Token ${called.tokenNumber} — go to ${counterLabel}`,
+            icon: "/favicon.ico",
           });
         }
       }

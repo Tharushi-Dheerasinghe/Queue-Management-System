@@ -1,12 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTenant } from "../../context/TenantContext";
-import { io } from "socket.io-client";
 import { Download, Search, RefreshCw, Bell, User as UserIcon } from "lucide-react";
 import api from "../../services/api";
-
-const SOCKET_SERVER_URL = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5000";
+import { createQueueSocket, joinTrackedBranches } from "../../utils/socketClient";
 
 export default function TrackQueue() {
   const { tenantType } = useParams();
@@ -18,93 +16,124 @@ export default function TrackQueue() {
   const [myTokens, setMyTokens] = useState([]);
   const [searchTokenNum, setSearchTokenNum] = useState("");
   const [loading, setLoading] = useState(false);
-  const [socket, setSocket] = useState(null);
+  const socketRef = useRef(null);
+  const myTokensRef = useRef([]);
 
   const primaryColor = orgBranding?.primaryColor || tenant?.theme?.primaryHex || "#0ea5e9";
   const notificationPermission = useRef(Notification.permission);
 
-  useEffect(() => {
-    // Request notification permission
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().then(permission => {
-        notificationPermission.current = permission;
-      });
-    }
-
-    // Load saved tokens
-    loadSavedTokens();
-
-    // Socket Connection
-    const newSocket = io(SOCKET_SERVER_URL, { transports: ["websocket"] });
-    setSocket(newSocket);
-
-    newSocket.on("connect", () => {
-      console.log("Connected to tracking socket");
-    });
-
-    newSocket.on("queueUpdated", (updateData) => {
-      // Whenever queue updates, refresh our tokens to get latest 'peopleAhead' and 'status'
-      refreshAllTokens();
-      
-      // Check if any of our tokens were called
-      const savedTokens = JSON.parse(localStorage.getItem(`queueflow_${tenantType}_my_tokens`) || "[]");
-      savedTokens.forEach(token => {
-        if (updateData.branchId === token.branchId && updateData.serviceId === token.serviceId) {
-          if (updateData.calledToken && updateData.calledToken._id === token.id) {
-            triggerNotification(
-              t("It's your turn!"),
-              `${t("Your token")} ${token.tokenNumber} ${t("has been called to Counter")} ${updateData.calledToken.counterNumber || ''}`
-            );
-          } else if (token.status === "Waiting") {
-            // Check if they are next
-            api.get(`/tokens/${token.id}`).then(res => {
-              if (res.data.success && res.data.data.peopleAhead === 1) {
-                triggerNotification(
-                  t("Get Ready!"),
-                  `${t("Only 1 person ahead of you for")} ${token.serviceName}.`
-                );
-              }
-            }).catch(() => {});
-          }
-        }
-      });
-    });
-
-    return () => newSocket.disconnect();
+  const loadSavedTokens = useCallback(() => {
+    let saved = JSON.parse(localStorage.getItem(`queueflow_${tenantType}_my_tokens`) || "[]");
+    saved = saved.filter((token) => token && (token.id || token._id));
+    setMyTokens(saved);
+    myTokensRef.current = saved;
   }, [tenantType]);
 
-  const triggerNotification = (title, body) => {
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(title, { body, icon: orgBranding?.logoUrl || '/favicon.ico' });
-    }
-  };
-
-  const loadSavedTokens = () => {
-    let saved = JSON.parse(localStorage.getItem(`queueflow_${tenantType}_my_tokens`) || "[]");
-    saved = saved.filter(t => t && (t.id || t._id));
-    setMyTokens(saved);
-  };
-
-  const refreshAllTokens = async () => {
+  const refreshAllTokens = useCallback(async () => {
     const saved = JSON.parse(localStorage.getItem(`queueflow_${tenantType}_my_tokens`) || "[]");
     if (saved.length === 0) return;
 
     try {
-      const updatedTokens = await Promise.all(saved.map(async (t) => {
-        try {
-          const res = await api.get(`/tokens/${t.id || t._id}`);
-          if (res.data.success) {
-            return { ...t, ...res.data.data, id: res.data.data._id || res.data.data.id };
+      const updatedTokens = await Promise.all(
+        saved.map(async (token) => {
+          try {
+            const res = await api.get(`/tokens/${token.id || token._id}`);
+            if (res.data.success) {
+              const payload = res.data.data || res.data.token;
+              if (payload) {
+                return { ...token, ...payload, id: payload.id || payload._id };
+              }
+            }
+          } catch {
+            // keep cached token on transient errors
           }
-        } catch (e) { }
-        return t;
-      }));
+          return token;
+        })
+      );
+
       localStorage.setItem(`queueflow_${tenantType}_my_tokens`, JSON.stringify(updatedTokens));
       setMyTokens(updatedTokens);
-    } catch (e) {
-      console.error("Failed to refresh tokens", e);
+      myTokensRef.current = updatedTokens;
+    } catch (error) {
+      console.error("Failed to refresh tokens", error);
     }
-  };
+  }, [tenantType]);
+
+  const triggerNotification = useCallback(
+    (title, body) => {
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(title, { body, icon: orgBranding?.logoUrl || "/favicon.ico" });
+      }
+    },
+    [orgBranding?.logoUrl]
+  );
+
+  const handleQueueUpdated = useCallback(
+    (updateData) => {
+      refreshAllTokens();
+
+      const savedTokens = myTokensRef.current;
+      savedTokens.forEach((token) => {
+        const sameBranch = String(updateData.branchId || "") === String(token.branchId || "");
+        const sameService = String(updateData.serviceId || "") === String(token.serviceId || "");
+        if (!sameBranch || !sameService) return;
+
+        const called = updateData.calledToken || updateData.token;
+        const calledId = String(called?.id || called?._id || "");
+        const tokenId = String(token.id || token._id || "");
+
+        if (calledId && calledId === tokenId && called?.status === "Called") {
+          const unitLabel = updateData.unitName || token.unitName || token.serviceName || t("your unit");
+          const counterLabel = updateData.counter?.counterName || called.counterName || t("counter");
+          triggerNotification(
+            t("It's your turn!"),
+            `${t("Token")} ${token.tokenNumber} — ${t("go to")} ${counterLabel} (${unitLabel})`
+          );
+        }
+      });
+    },
+    [refreshAllTokens, t, triggerNotification]
+  );
+
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().then((permission) => {
+        notificationPermission.current = permission;
+      });
+    }
+
+    loadSavedTokens();
+  }, [loadSavedTokens]);
+
+  useEffect(() => {
+    const socket = createQueueSocket();
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      joinTrackedBranches(
+        socket,
+        myTokensRef.current.map((token) => token.branchId)
+      );
+      refreshAllTokens();
+    });
+
+    socket.on("queueUpdated", handleQueueUpdated);
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [tenantType, handleQueueUpdated, refreshAllTokens]);
+
+  useEffect(() => {
+    if (socketRef.current?.connected) {
+      joinTrackedBranches(
+        socketRef.current,
+        myTokens.map((token) => token.branchId)
+      );
+    }
+    myTokensRef.current = myTokens;
+  }, [myTokens]);
 
   const handleManualSearch = async (e) => {
     e.preventDefault();
@@ -113,12 +142,17 @@ export default function TrackQueue() {
     try {
       const res = await api.get(`/tokens/track/${searchTokenNum.trim()}`);
       if (res.data.success) {
-        const tokenData = res.data.data;
-        const exists = myTokens.some(t => t.tokenNumber === tokenData.tokenNumber);
+        const tokenData = res.data.token || res.data.data;
+        const exists = myTokens.some((token) => token.tokenNumber === tokenData.tokenNumber);
         if (!exists) {
-          const newTokens = [...myTokens, { ...tokenData, id: tokenData._id }];
+          const newTokens = [...myTokens, { ...tokenData, id: tokenData.id || tokenData._id }];
           localStorage.setItem(`queueflow_${tenantType}_my_tokens`, JSON.stringify(newTokens));
           setMyTokens(newTokens);
+          myTokensRef.current = newTokens;
+
+          if (socketRef.current?.connected && tokenData.branchId) {
+            socketRef.current.emit("joinBranch", tokenData.branchId);
+          }
         }
         setSearchTokenNum("");
       }
@@ -130,7 +164,7 @@ export default function TrackQueue() {
   };
 
   const printToken = (token) => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     printWindow.document.write(`
       <html>
         <head>
@@ -150,7 +184,7 @@ export default function TrackQueue() {
             <p>${token.branchName} • ${token.serviceName}</p>
             <h1>${token.tokenNumber}</h1>
             <p><strong>Name:</strong> ${token.fullName}</p>
-            ${token.estimatedWait ? `<p><strong>Est. Wait:</strong> ${token.estimatedWait}</p>` : ''}
+            ${token.estimatedWait ? `<p><strong>Est. Wait:</strong> ${token.estimatedWait}</p>` : ""}
             <div class="date">${new Date(token.createdAt || Date.now()).toLocaleString()}</div>
           </div>
           <script>
@@ -163,9 +197,10 @@ export default function TrackQueue() {
   };
 
   const removeToken = (tokenId) => {
-    const filtered = myTokens.filter(t => (t.id || t._id) !== tokenId);
+    const filtered = myTokens.filter((token) => (token.id || token._id) !== tokenId);
     localStorage.setItem(`queueflow_${tenantType}_my_tokens`, JSON.stringify(filtered));
     setMyTokens(filtered);
+    myTokensRef.current = filtered;
   };
 
   return (
@@ -178,24 +213,32 @@ export default function TrackQueue() {
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">{t("Watch your live queue status here.")}</p>
         </div>
-        
+
         <form onSubmit={handleManualSearch} className="flex w-full md:w-auto relative">
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder={t("Enter Token Number...")}
             value={searchTokenNum}
             onChange={(e) => setSearchTokenNum(e.target.value)}
             className="pl-4 pr-12 py-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white w-full md:w-72 focus:outline-none focus:ring-2 shadow-sm"
-            style={{ '--tw-ring-color': primaryColor }}
+            style={{ "--tw-ring-color": primaryColor }}
           />
-          <button type="submit" disabled={loading} className="absolute right-1 top-1 p-2 rounded-full text-white transition disabled:opacity-50" style={{ backgroundColor: primaryColor }}>
+          <button
+            type="submit"
+            disabled={loading}
+            className="absolute right-1 top-1 p-2 rounded-full text-white transition disabled:opacity-50"
+            style={{ backgroundColor: primaryColor }}
+          >
             <Search size={20} />
           </button>
         </form>
       </div>
 
       <div className="flex justify-end mb-4">
-        <button onClick={refreshAllTokens} className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition">
+        <button
+          onClick={refreshAllTokens}
+          className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition"
+        >
           <RefreshCw size={16} /> {t("Refresh Status")}
         </button>
       </div>
@@ -207,71 +250,88 @@ export default function TrackQueue() {
               <Search size={32} />
             </div>
             <h2 className="text-xl font-bold text-slate-800 dark:text-white">{t("No saved tokens")}</h2>
-            <p className="text-slate-500 mt-2 max-w-sm mx-auto">{t("Book a token or enter your token number above to start tracking your queue status.")}</p>
+            <p className="text-slate-500 mt-2 max-w-sm mx-auto">
+              {t("Book a token or enter your token number above to start tracking your queue status.")}
+            </p>
           </div>
         ) : (
-          myTokens.map(token => {
+          myTokens.map((token) => {
             const isNew = token.id === newlyBookedId || token._id === newlyBookedId;
             const isWaiting = token.status === "Waiting";
             const isCalled = token.status === "Called";
-            const isCompleted = token.status === "Completed";
-            
+            const unitLabel = token.unitName || token.serviceName;
+
             return (
-              <div 
-                key={token.id || token._id} 
-                className={`relative bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border-2 overflow-hidden transition-all ${isNew ? 'animate-in zoom-in duration-500' : ''}`}
-                style={{ borderColor: isCalled ? primaryColor : (isWaiting ? 'transparent' : '#cbd5e1') }}
+              <div
+                key={token.id || token._id}
+                className={`relative bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border-2 overflow-hidden transition-all ${isNew ? "animate-in zoom-in duration-500" : ""}`}
+                style={{ borderColor: isCalled ? primaryColor : isWaiting ? "transparent" : "#cbd5e1" }}
               >
                 {isNew && (
                   <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
                     {t("Newly Booked")}
                   </div>
                 )}
-                
+
                 <div className="flex flex-col md:flex-row gap-6 md:items-center">
-                  {/* Token Big Number */}
                   <div className="flex flex-col items-center justify-center min-w-[140px] p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                     <span className="text-sm font-bold text-slate-400">{t("TOKEN NO")}</span>
-                    <span className="text-5xl font-black mt-1" style={{ color: primaryColor }}>{token.tokenNumber}</span>
+                    <span className="text-5xl font-black mt-1" style={{ color: primaryColor }}>
+                      {token.tokenNumber}
+                    </span>
                   </div>
 
-                  {/* Token Details */}
                   <div className="flex-1 space-y-3">
                     <div>
                       <h3 className="text-xl font-bold text-slate-900 dark:text-white">{token.organizationName}</h3>
-                      <p className="text-sm text-slate-500 font-medium">{token.branchName} • {token.serviceName}</p>
+                      <p className="text-sm text-slate-500 font-medium">
+                        {token.branchName} • {unitLabel}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                       <UserIcon size={16} />
                       <span className="font-semibold">{token.fullName}</span>
                     </div>
+                    {isCalled && token.counterName && (
+                      <p className="text-sm font-bold" style={{ color: primaryColor }}>
+                        {t("Proceed to")}: {token.counterName}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Status & Actions */}
                   <div className="flex flex-col items-center md:items-end justify-between min-h-[100px] border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 pt-4 md:pt-0 md:pl-6 w-full md:w-auto">
                     {isWaiting ? (
                       <div className="text-center md:text-right w-full">
                         <div className="text-sm font-semibold text-slate-500">{t("People Ahead")}</div>
-                        <div className="text-4xl font-extrabold text-slate-900 dark:text-white">{token.peopleAhead || 0}</div>
-                        {token.estimatedWait && <div className="text-xs text-orange-500 font-bold mt-1">{t("Wait:")} ~{token.estimatedWait}</div>}
+                        <div className="text-4xl font-extrabold text-slate-900 dark:text-white">
+                          {token.peopleAhead ?? 0}
+                        </div>
+                        {token.estimatedWait && (
+                          <div className="text-xs text-orange-500 font-bold mt-1">
+                            {t("Wait:")} ~{token.estimatedWait}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="text-center md:text-right w-full">
                         <div className="text-sm font-semibold text-slate-500">{t("Status")}</div>
-                        <div className={`text-2xl font-black ${isCalled ? 'animate-pulse' : ''}`} style={isCalled ? { color: primaryColor } : { color: '#64748b' }}>
+                        <div
+                          className={`text-2xl font-black ${isCalled ? "animate-pulse" : ""}`}
+                          style={isCalled ? { color: primaryColor } : { color: "#64748b" }}
+                        >
                           {t(token.status)}
                         </div>
                       </div>
                     )}
-                    
+
                     <div className="flex gap-2 w-full mt-4">
-                      <button 
+                      <button
                         onClick={() => printToken(token)}
                         className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
                       >
                         <Download size={16} /> {t("PDF")}
                       </button>
-                      <button 
+                      <button
                         onClick={() => removeToken(token.id || token._id)}
                         className="px-4 py-2 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
                       >
@@ -279,7 +339,6 @@ export default function TrackQueue() {
                       </button>
                     </div>
                   </div>
-
                 </div>
               </div>
             );
