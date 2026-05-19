@@ -341,6 +341,7 @@ export default function BranchAdminOperations() {
                           <thead>
                             <tr className="border-b border-slate-200">
                               <th className="px-3 py-2 text-left font-semibold text-slate-900">Counter</th>
+                              <th className="px-3 py-2 text-left font-semibold text-slate-900">Counter ID (For ESP32)</th>
                               <th className="px-3 py-2 text-left font-semibold text-slate-900">Status</th>
                               <th className="px-3 py-2 text-left font-semibold text-slate-900">Assigned Staff</th>
                             </tr>
@@ -350,6 +351,11 @@ export default function BranchAdminOperations() {
                               <tr key={counter.counterId} className="border-b border-slate-100">
                                 <td className="px-3 py-2 font-medium text-slate-900">
                                   {counter.counterName || "-"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <code className="rounded bg-slate-200 px-2 py-1 text-xs font-mono text-slate-700 select-all">
+                                    {counter.counterId}
+                                  </code>
                                 </td>
                                 <td className="px-3 py-2">
                                   <span
