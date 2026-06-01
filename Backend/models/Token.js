@@ -98,7 +98,6 @@ const tokenSchema = new mongoose.Schema({
   tokenNumber: {
     type: String,
     required: true,
-    unique: true,
     uppercase: true,
     trim: true,
   },
@@ -158,12 +157,15 @@ const tokenSchema = new mongoose.Schema({
   },
 });
 
+tokenSchema.index({ tokenNumber: 1, bookingDate: 1 }, { unique: true });
+
 tokenSchema.index(
   {
     tenantType: 1,
     organizationId: 1,
     branchId: 1,
     serviceId: 1,
+    bookingDate: 1,
     sequenceNumber: 1,
   },
   {
