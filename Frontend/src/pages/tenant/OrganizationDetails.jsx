@@ -148,9 +148,10 @@ export default function OrganizationDetails() {
         navigate(`/${tenantType}/track?new=${tokenData?.id || tokenData?._id}`);
       }
     } catch (err) {
-      const message = err?.response?.data?.message || err?.response?.data?.errors
-        ? Object.values(err.response.data.errors)[0]
-        : "Failed to book token";
+      const message = err?.response?.data?.message || 
+                      (err?.response?.data?.errors && Object.values(err.response.data.errors)[0]) || 
+                      err?.message || 
+                      "Failed to book token";
       setBookingError(message);
     } finally {
       setBookingLoading(false);
