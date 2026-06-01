@@ -486,7 +486,7 @@ export const trackTokenByNumber = async (req, res) => {
       });
     }
 
-    const token = await Token.findOne({ tokenNumber });
+    const token = await Token.findOne({ tokenNumber }).sort({ createdAt: -1 });
 
     if (!token) {
       return res.status(404).json({
