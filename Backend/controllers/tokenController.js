@@ -238,6 +238,25 @@ export const createToken = async (req, res) => {
       });
     }
 
+    // Check if an active token already exists with same name, phone/mobile, branch, and service
+    if (validatedCustomer.fullName !== "Walk-in Customer") {
+      const existingActiveToken = await Token.findOne({
+        branchId: branch._id,
+        serviceId: service._id,
+        fullName: { $regex: new RegExp(`^${validatedCustomer.fullName.trim()}$`, "i") },
+        mobile: validatedCustomer.mobile.trim(),
+        status: { $in: ["Waiting", "Called"] },
+        bookingDate: finalBookingDate,
+      });
+
+      if (existingActiveToken) {
+        return res.status(400).json({
+          success: false,
+          message: "already has token",
+        });
+      }
+    }
+
     const organizationScope = resolveOrganizationScope({
       req,
       branch,

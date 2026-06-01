@@ -250,7 +250,12 @@ export default function TrackQueue() {
     printWindow.document.close();
   };
 
-  const removeToken = (tokenId) => {
+  const removeToken = async (tokenId) => {
+    try {
+      await api.patch(`/tokens/${tokenId}/status`, { status: "Cancelled" });
+    } catch (err) {
+      console.error("Failed to cancel token on the backend:", err);
+    }
     const filtered = myTokens.filter((token) => (token.id || token._id) !== tokenId);
     persistTokens(filtered);
   };

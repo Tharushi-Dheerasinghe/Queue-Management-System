@@ -165,8 +165,12 @@ const getScopedBranch = async (reqUser, branchId, tenantType) => {
 
 const buildUsersQuery = (reqUser) => {
   const tenantType = normalizeTenantType(reqUser?.tenantType);
+  const role = normalizeRole(reqUser?.role);
 
   if (isSuperAdmin(reqUser)) {
+    if (role === "company_super_admin") {
+      return {};
+    }
     const allowedTenantTypes = getRequesterAllowedTenantTypes(reqUser);
     if (allowedTenantTypes.length === 0) {
       return null;

@@ -1,14 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import {
-  getOrganizationsByTenant,
-  getBranchesByTenant,
-  getAllOrganizationAdmins,
-  getUsersByTenant,
-} from "../../services/tenantService";
+import api from "../../services/api";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-
-const TENANTS = ["bank", "supermarket"];
 
 export default function CompanySuperAdminDashboard() {
   const { user, tenantType } = useAuth();
@@ -30,22 +23,21 @@ export default function CompanySuperAdminDashboard() {
         setLoading(true);
 
         const [
-          orgResults,
-          branchResults,
-          orgAdmins,
-          userResults,
+          orgRes,
+          branchRes,
+          userRes,
         ] = await Promise.all([
-          Promise.all(TENANTS.map((t) => getOrganizationsByTenant(t))),
-          Promise.all(TENANTS.map((t) => getBranchesByTenant(t))),
-          getAllOrganizationAdmins(),
-          Promise.all(TENANTS.map((t) => getUsersByTenant(t))),
+          api.get("/organizations"),
+          api.get("/branches"),
+          api.get("/users"),
         ]);
 
-        const organizations = orgResults.flat();
-        const branches = branchResults.flat();
-        const users = userResults.flat();
+        const organizations = orgRes.data.organizations || [];
+        const branches = branchRes.data.branches || branchRes.data.data || [];
+        const users = userRes.data.users || [];
 
-        const staff = users.filter((u) => u.role !== "organization_admin");
+        const orgAdmins = users.filter((u) => u.role === "organization_admin");
+        const staff = users.filter((u) => u.role !== "organization_admin" && u.role !== "company_super_admin");
 
         setStats({
           companies: organizations.length,

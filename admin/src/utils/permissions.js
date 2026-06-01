@@ -117,7 +117,6 @@ export const roleSidebarLinks = {
     { label: "Hospitals", to: "/hospital-super-admin/hospitals" },
     { label: "Services", to: "/hospital-super-admin/services" },
     { label: "Hospitals Registration", to: "/hospital-super-admin/registered-hospitals" },
-    { label: "Branch Requests", to: "/hospital-super-admin/branch-requests" },
     { label: "Registered Admins", to: "/hospital-super-admin/hospital-admins" },
   ],
   [CANONICAL_ROLES.POLICE_SUPER_ADMIN]: [
@@ -125,7 +124,6 @@ export const roleSidebarLinks = {
     { label: "Main Division", to: "/police-super-admin/main-division" },
     { label: "Services", to: "/police-super-admin/services" },
     { label: "Branches", to: "/police-super-admin/branches" },
-    { label: "Branch Requests", to: "/police-super-admin/branch-requests" },
     { label: "Branch Admins", to: "/police-super-admin/branch-admins" },
     { label: "Reports", to: "/police-super-admin/reports" },
   ],
@@ -134,7 +132,6 @@ export const roleSidebarLinks = {
     { label: "System Builder", to: "/company-super-admin/system-builder" },
     { label: "Organizations", to: "/company-super-admin/organizations" },
     { label: "Branches", to: "/company-super-admin/branches" },
-    { label: "Branch Requests", to: "/company-super-admin/branch-requests" },
     { label: "Organization Admins", to: "/company-super-admin/organization-admins" },
     { label: "Reports", to: "/company-super-admin/reports" },
   ],

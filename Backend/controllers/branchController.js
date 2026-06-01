@@ -308,7 +308,10 @@ export const getBranches = async (req, res) => {
 
     if (isSuperAdmin(req.user)) {
       if (role === "company_super_admin") {
-        query.tenantType = { $in: ["bank", "supermarket"] };
+        const requestedTenantType = normalizeTenantType(req.query?.tenantType);
+        if (requestedTenantType) {
+          query.tenantType = requestedTenantType;
+        }
       } else if (role === "hospital_super_admin") {
         query.tenantType = "hospital";
       } else if (role === "police_super_admin") {
