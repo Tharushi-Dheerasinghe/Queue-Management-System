@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { getOrganizationAdminsByTenant } from "../../services/tenantService";
+import api from "../../services/api";
 
 const formatStatusLabel = (status = "") => {
   const normalized = String(status || "").trim().toLowerCase();
@@ -43,16 +43,15 @@ export default function CompanySuperAdminOrganizationAdmins() {
         setLoading(true);
         setError("");
 
-        const [bankAdmins, supermarketAdmins] = await Promise.all([
-          getOrganizationAdminsByTenant("bank"),
-          getOrganizationAdminsByTenant("supermarket"),
-        ]);
+        const res = await api.get("/users");
+        const allUsers = res.data.users || [];
+        const orgAdmins = allUsers.filter((u) => u.role === "organization_admin");
 
         if (!isMounted) {
           return;
         }
 
-        setAdmins([...(Array.isArray(bankAdmins) ? bankAdmins : []), ...(Array.isArray(supermarketAdmins) ? supermarketAdmins : [])]);
+        setAdmins(orgAdmins);
       } catch (loadError) {
         if (!isMounted) {
           return;

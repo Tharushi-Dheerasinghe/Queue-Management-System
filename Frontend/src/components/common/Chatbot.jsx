@@ -30,7 +30,10 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
-      const response = await api.post("/chat", { message: userText });
+      const response = await api.post("/chat", { 
+        message: userText,
+        history: messages 
+      });
       setMessages((prev) => [...prev, { role: "bot", content: response.data.reply }]);
     } catch (error) {
       console.error("Chat error:", error);

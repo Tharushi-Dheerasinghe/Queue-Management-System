@@ -28,7 +28,10 @@ export default function ChatbotWidget() {
     setLoading(true);
 
     try {
-      const response = await api.post("/chat", { message: userMessage });
+      const response = await api.post("/chat", { 
+        message: userMessage,
+        history: messages 
+      });
       const reply = response.data?.reply?.trim();
       if (!reply) {
         throw new Error("Empty chatbot response");
