@@ -22,4 +22,17 @@ client.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Add a response interceptor to handle 401 Unauthorized (Invalid or expired token)
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user"); // Clear user metadata if stored
+      window.location.href = "/user/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default client;
