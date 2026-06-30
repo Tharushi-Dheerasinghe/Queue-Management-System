@@ -896,13 +896,24 @@ export const getProcessedTokensByCounter = async (req, res) => {
   }
 };
 
-export const completeAndCallNextToken = async (req, res) => {
-  try {
-    const { counterId } = req.body;
+// Use an in-memory set to prevent race conditions from ESP32 button bouncing
+const processingCounters = new Set();
 
-    if (!counterId || !mongoose.Types.ObjectId.isValid(counterId)) {
-      return res.status(400).json({ success: false, message: "Invalid or missing Counter ID format" });
-    }
+export const completeAndCallNextToken = async (req, res) => {
+  const { counterId } = req.body;
+  
+  if (!counterId || !mongoose.Types.ObjectId.isValid(counterId)) {
+    return res.status(400).json({ success: false, message: "Invalid or missing Counter ID format" });
+  }
+
+  // Prevent concurrent requests for the same counter
+  const lockKey = String(counterId);
+  if (processingCounters.has(lockKey)) {
+    return res.status(429).json({ success: false, message: "Please wait before calling next token again." });
+  }
+  processingCounters.add(lockKey);
+
+  try {
 
     const counter = await Counter.findById(counterId);
     if (!counter) {
@@ -990,6 +1001,8 @@ export const completeAndCallNextToken = async (req, res) => {
   } catch (error) {
     console.error("completeAndCallNext error:", error);
     res.status(500).json({ success: false, message: error.message });
+  } finally {
+    processingCounters.delete(lockKey);
   }
 };
 
