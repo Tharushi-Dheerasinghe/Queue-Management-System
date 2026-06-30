@@ -125,6 +125,7 @@ export const roleSidebarLinks = {
     { label: "Services", to: "/police-super-admin/services" },
     { label: "Branches", to: "/police-super-admin/branches" },
     { label: "Branch Admins", to: "/police-super-admin/branch-admins" },
+    { label: "Reports", to: "/police-super-admin/reports" },
   ],
   [CANONICAL_ROLES.COMPANY_SUPER_ADMIN]: [
     { label: "Dashboard", to: "/company-super-admin/dashboard" },
@@ -132,12 +133,14 @@ export const roleSidebarLinks = {
     { label: "Organizations", to: "/company-super-admin/organizations" },
     { label: "Branches", to: "/company-super-admin/branches" },
     { label: "Organization Admins", to: "/company-super-admin/organization-admins" },
+    { label: "Reports", to: "/company-super-admin/reports" },
   ],
   [CANONICAL_ROLES.ORGANIZATION_ADMIN]: [
     { label: "Dashboard", to: "/organization-admin/dashboard" },
     { label: "Branches", to: "/organization-admin/branches" },
     { label: "Branch Admins", to: "/organization-admin/branch-admins" },
     { label: "Services", to: "/organization-admin/services" },
+    { label: "Reports", to: "/organization-admin/reports" },
   ],
   [CANONICAL_ROLES.BRANCH_ADMIN]: [
     { label: "Dashboard", to: "/branch-admin/dashboard" },
