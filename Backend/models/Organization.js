@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 // Police tenants are stored here as regular organizations with optional
 // police-specific metadata (for example divisionName, district, province, category).
 
-const ORGANIZATION_TENANT_TYPES = ["police", "bank", "supermarket", "hospital"];
+const ORGANIZATION_TENANT_TYPES = ["police", "bank", "supermarket", "hospital", "salon", "pharmacy"];
 const ORGANIZATION_STATUSES = ["pending", "approved", "active", "inactive", "rejected"];
 
 const queueSettingsSchema = new mongoose.Schema(
@@ -64,7 +64,6 @@ const organizationSchema = new mongoose.Schema(
 
     organizationCode: {
       type: String,
-      default: null,
       trim: true,
       uppercase: true,
       unique: true,

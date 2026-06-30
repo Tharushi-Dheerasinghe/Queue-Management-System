@@ -251,6 +251,9 @@ export default function TrackQueue() {
   };
 
   const removeToken = async (tokenId) => {
+    const isConfirmed = window.confirm(t("Are you sure you want to remove this token?"));
+    if (!isConfirmed) return;
+
     try {
       await api.patch(`/tokens/${tokenId}/status`, { status: "Cancelled" });
     } catch (err) {

@@ -25,6 +25,8 @@ const NON_POLICE_ORGANIZATION_CODE_PREFIX = {
   bank: "BNK",
   supermarket: "SUP",
   hospital: "HOS",
+  salon: "SAL",
+  pharmacy: "PHA",
 };
 const ORGANIZATION_CODE_GENERATION_MAX_ATTEMPTS = 10;
 

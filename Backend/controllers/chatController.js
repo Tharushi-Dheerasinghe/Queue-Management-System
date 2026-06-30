@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const MODEL_CANDIDATES = ["gemini-2.5-flash", "gemini-2.0-flash"];
+const MODEL_CANDIDATES = ["gemini-2.5-flash", "gemini-3.5-flash"];
 
 const buildPromptWithHistory = (userQuery, history = []) => {
-  let context = "You are a friendly and helpful assistant for a Smart Queue Management System. Provide brief, clear responses (2-3 sentences max) to help users with queue management questions.\n\n";
+  let context = "You are a friendly and helpful assistant for a Queue Management System. IMPORTANT: You MUST answer the user in the EXACT SAME LANGUAGE they used in their query. If they ask in Sinhala, reply in Sinhala. If they ask in English, reply in English.\n\nCRITICAL INSTRUCTIONS FOR BOOKING A TOKEN:\nIf the user asks how to get or book a token, you MUST list these exact steps in order:\n1. Select your desired industry category (e.g., Hospital, Bank) from the Home page.\n2. Select your preferred Organization and Branch.\n3. Choose the Service you need.\n4. Click 'Confirm Booking' to generate your token number.\n\nAnswer any other questions related to the system (e.g., waiting time, people ahead, cancellation) briefly and clearly.\n\n";
 
   if (Array.isArray(history)) {
     // Take the last 6 turns to keep context short, fast, and fit in rate limits
