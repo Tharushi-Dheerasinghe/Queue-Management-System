@@ -17,7 +17,7 @@ import Token from "../models/Token.js";
 import { sendSMS } from "../utils/smsService.js";
 import { normalizeWorkingDaysToNames } from "../utils/workingDays.js";
 
-const ALLOWED_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket"]);
+const ALLOWED_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket", "pharmacy", "salon"]);
 const ALLOWED_STATUS = new Set(["active", "inactive"]);
 
 const normalizeText = (value = "") => String(value || "").trim();
@@ -206,9 +206,6 @@ export const getServices = async (req, res) => {
     }
 
     const tenantType = normalizeTenantType(req.query.tenantType || req.user.tenantType);
-    if (!ALLOWED_TENANT_TYPES.has(tenantType)) {
-      return errorResponse(res, 400, "tenantType must be one of police, hospital, bank, or supermarket");
-    }
 
     if (isSuperAdmin(req.user)) {
       if (tenantType !== normalizeTenantType(req.user.tenantType)) {

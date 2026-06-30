@@ -45,7 +45,11 @@ const normalizeOptionalOrganizationCode = (value = "") => {
 const generateRandom4Digits = () => String(Math.floor(1000 + Math.random() * 9000));
 
 const generateUniqueOrganizationCodeForTenant = async (tenantType = "") => {
-  const prefix = NON_POLICE_ORGANIZATION_CODE_PREFIX[tenantType];
+  let prefix = NON_POLICE_ORGANIZATION_CODE_PREFIX[tenantType];
+
+  if (!prefix && tenantType) {
+    prefix = tenantType.substring(0, 3).toUpperCase();
+  }
 
   if (!prefix) {
     return undefined;

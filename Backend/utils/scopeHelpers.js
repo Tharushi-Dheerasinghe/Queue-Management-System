@@ -7,8 +7,7 @@ const LEGACY_SUPER_ADMIN_ROLES = new Set([
 const normalizeText = (value = "") => String(value || "").trim().toLowerCase();
 
 export const normalizeTenantType = (value) => {
-  const tenantType = normalizeText(value);
-  return ["police", "hospital", "bank", "supermarket"].includes(tenantType) ? tenantType : tenantType;
+  return normalizeText(value);
 };
 
 export const normalizeRole = (value) => normalizeText(value);

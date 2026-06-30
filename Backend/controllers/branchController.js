@@ -16,7 +16,7 @@ import { isValidObjectId, requireFields } from "../utils/validationHelpers.js";
 import mongoose from "mongoose";
 import { sendSMS } from "../utils/smsService.js";
 
-const ALLOWED_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket"]);
+const ALLOWED_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket", "pharmacy", "salon"]);
 const ALLOWED_STATUSES = new Set(["active", "inactive"]);
 
 const parseBoolean = (value) => {
@@ -222,9 +222,6 @@ export const createBranch = async (req, res) => {
     }
 
     const tenantType = normalizeTenantType(req.body.tenantType);
-    if (!ALLOWED_TENANT_TYPES.has(tenantType)) {
-      return errorResponse(res, 400, "tenantType must be one of police, hospital, bank, or supermarket");
-    }
 
     const userTenantType = normalizeTenantType(req.user.tenantType);
     if (!userTenantType || userTenantType !== tenantType) {

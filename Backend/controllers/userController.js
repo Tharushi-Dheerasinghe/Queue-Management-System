@@ -15,7 +15,7 @@ import {
 import { errorResponse, successResponse } from "../utils/responseHelpers.js";
 import { isValidObjectId, requireFields } from "../utils/validationHelpers.js";
 
-const COMMON_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket"]);
+const COMMON_TENANT_TYPES = new Set(["police", "hospital", "bank", "supermarket", "pharmacy", "salon"]);
 
 const LEGACY_ROLE_TENANT_ACCESS = {
   police_super_admin: ["police"],
@@ -67,7 +67,7 @@ const getRequesterAllowedTenantTypes = (reqUser = {}) => {
   }
 
   const tenantType = normalizeTenantType(reqUser.tenantType);
-  if (COMMON_TENANT_TYPES.has(tenantType)) {
+  if (tenantType) {
     return [tenantType];
   }
 
@@ -100,15 +100,6 @@ const resolveOrganizationAdminTenantType = (req) => {
   }
 
   const targetTenantType = bodyTenantType || requesterTenantType || (allowedTenantTypes.length === 1 ? allowedTenantTypes[0] : "");
-
-  if (!COMMON_TENANT_TYPES.has(targetTenantType)) {
-    return {
-      error: {
-        statusCode: 400,
-        message: "tenantType must be one of police, hospital, bank, or supermarket",
-      },
-    };
-  }
 
   if (!allowedTenantTypes.includes(targetTenantType)) {
     return {

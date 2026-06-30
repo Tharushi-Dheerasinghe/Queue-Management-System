@@ -11,7 +11,7 @@ import {
 import { errorResponse, successResponse } from "../utils/responseHelpers.js";
 import { isValidObjectId, requireFields } from "../utils/validationHelpers.js";
 
-const COMMON_TENANT_TYPES = new Set(["police", "bank", "supermarket", "hospital"]);
+const COMMON_TENANT_TYPES = new Set(["police", "bank", "supermarket", "hospital", "pharmacy", "salon"]);
 
 const normalizeText = (value = "") => String(value || "").trim();
 const normalizeEmail = (value = "") => normalizeText(value).toLowerCase();
@@ -153,9 +153,6 @@ export const createBranchRequest = async (req, res) => {
     }
 
     const tenantType = normalizeTenantType(req.body.tenantType || req.user.tenantType);
-    if (!COMMON_TENANT_TYPES.has(tenantType)) {
-      return errorResponse(res, 400, "tenantType must be one of police, hospital, bank, or supermarket");
-    }
 
     if (tenantType !== normalizeTenantType(req.user.tenantType)) {
       return errorResponse(res, 403, "organization_admin can only create requests for their own tenantType");
