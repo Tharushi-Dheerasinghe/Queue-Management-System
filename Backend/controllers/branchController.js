@@ -627,6 +627,7 @@ export const getBranchDisplayData = async (req, res) => {
       };
     });
 
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     return res.status(200).json({
       success: true,
       data: {

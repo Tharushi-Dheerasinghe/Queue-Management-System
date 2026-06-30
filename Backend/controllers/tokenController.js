@@ -1119,6 +1119,7 @@ export const getWaitingTokensList = async (req, res) => {
       .select("tokenNumber fullName sequenceNumber createdAt estimatedWait note serviceId")
       .lean();
 
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.status(200).json({ success: true, count: tokens.length, tokens });
   } catch (error) {
     console.error("Error fetching waiting tokens list:", error);
@@ -1144,6 +1145,7 @@ export const getWaitRejectedList = async (req, res) => {
       .select("tokenNumber fullName status serviceId counterId")
       .lean();
 
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.status(200).json({ success: true, count: tokens.length, tokens });
   } catch (error) {
     console.error("Error fetching wait/rejected tokens:", error);
@@ -1168,6 +1170,7 @@ export const getActiveTokens = async (req, res) => {
       .select("tokenNumber fullName status serviceId counterId startedAt branchId")
       .lean();
 
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.status(200).json({ success: true, count: tokens.length, tokens });
   } catch (error) {
     console.error("Error fetching active tokens:", error);
