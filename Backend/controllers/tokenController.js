@@ -650,6 +650,12 @@ export const callNextToken = async (req, res) => {
     }).sort({ sequenceNumber: 1 });
 
     if (!nextToken) {
+      await emitQueueUpdated(counter.branchId, {
+        action: "callNextToken",
+        serviceId: String(counter.serviceId),
+        counterId: counter.id,
+      });
+
       return res.status(404).json({ 
         success: false, 
         message: "No tokens waiting for this counter's service" 
@@ -742,6 +748,12 @@ export const skipAndCallNextToken = async (req, res) => {
         counter.status = "active";
         await counter.save();
       }
+
+      await emitQueueUpdated(counter.branchId, {
+        action: "skipAndCallNextToken",
+        serviceId: String(counter.serviceId),
+        counterId: counter.id,
+      });
 
       return res.status(200).json({
         success: true,
@@ -929,6 +941,14 @@ export const completeAndCallNextToken = async (req, res) => {
         counter.status = 'active';
         await counter.save();
       }
+      
+      // Ensure the dashboard clears the active token if it was just completed
+      await emitQueueUpdated(counter.branchId, {
+        action: "iotNextToken",
+        serviceId: String(counter.serviceId),
+        counterId: counter.id,
+      });
+
       return res.status(200).json({ success: true, token: null, message: "No tokens waiting", remainingCount: 0 });
     }
 
