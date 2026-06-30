@@ -160,14 +160,6 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/police-super-admin/reports"
-          element={
-            <ProtectedRoute allowedRoles={[CANONICAL_ROLES.POLICE_SUPER_ADMIN]}>
-              <PoliceSuperAdminReports />
-            </ProtectedRoute>
-          }
-        />
 
         {/* HOSPITAL SUPER ADMIN ROUTES */}
         <Route
@@ -239,14 +231,6 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={[CANONICAL_ROLES.HOSPITAL_SUPER_ADMIN]}>
               <HospitalSuperAdminBranchRequests />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/hospital-super-admin/reports"
-          element={
-            <ProtectedRoute allowedRoles={[CANONICAL_ROLES.HOSPITAL_SUPER_ADMIN]}>
-              <HospitalSuperAdminReports />
             </ProtectedRoute>
           }
         />
@@ -332,14 +316,6 @@ export default function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/company-super-admin/reports"
-          element={
-            <ProtectedRoute allowedRoles={[CANONICAL_ROLES.COMPANY_SUPER_ADMIN]}>
-              <CompanySuperAdminReports />
-            </ProtectedRoute>
-          }
-        />
 
         {/* ORGANIZATION ADMIN ROUTES */}
         <Route
@@ -387,14 +363,6 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={[CANONICAL_ROLES.ORGANIZATION_ADMIN]}>
               <AddService />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/organization-admin/reports"
-          element={
-            <ProtectedRoute allowedRoles={[CANONICAL_ROLES.ORGANIZATION_ADMIN]}>
-              <SharedOrganizationAdminReports />
             </ProtectedRoute>
           }
         />
