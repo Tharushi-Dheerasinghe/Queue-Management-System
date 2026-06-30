@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { tenantConfig } from "../configs/tenantConfig.js";
+import { getTenantConfig } from "../configs/tenantConfig.js";
 import { legacyStorageKeys, readJSON, readValue, removeItem, storageKeys, writeJSON, writeValue } from "../utils/storage";
 
 export const TenantContext = createContext();
 
 export const TenantProvider = ({ tenantType, children }) => {
-  const tenant = useMemo(() => tenantConfig[tenantType], [tenantType]);
+  const tenant = useMemo(() => getTenantConfig(tenantType), [tenantType]);
   const theme = tenant?.theme;
 
   const selectedOrganizationIdKey = `queueflow_${tenantType}_selectedOrganization_id`;

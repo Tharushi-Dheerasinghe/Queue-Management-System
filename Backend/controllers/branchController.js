@@ -366,10 +366,6 @@ export const getPublicBranches = async (req, res) => {
       return errorResponse(res, 400, "tenantType query parameter is required");
     }
 
-    if (!ALLOWED_TENANT_TYPES.has(tenantType)) {
-      return errorResponse(res, 400, "tenantType must be one of police, hospital, bank, or supermarket");
-    }
-
     if (!organizationId) {
       return errorResponse(res, 400, "organizationId query parameter is required");
     }
